@@ -1,4 +1,4 @@
-package ua.edu.sumdu.volonteerProject.controllers.model;
+package ua.edu.sumdu.volonteerProject.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
