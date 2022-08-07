@@ -3,7 +3,7 @@ package ua.edu.sumdu.volonteerProject.serviceImpl;
 import lombok.AllArgsConstructor;
 import org.apache.commons.logging.Log;
 import org.apache.logging.log4j.Logger;
-import org.modelmapper.ModelMapper;
+//import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
 import ua.edu.sumdu.volonteerProject.model.City;
@@ -14,17 +14,14 @@ import ua.edu.sumdu.volonteerProject.repos.UserLocationRepository;
 import ua.edu.sumdu.volonteerProject.services.UserLocationService;
 import static java.lang.Math.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @AllArgsConstructor
 public class UserLocationServiceImpl implements UserLocationService {
 
-    private final ModelMapper modelMapper;
+   // private final ModelMapper modelMapper;
     private final UserLocationRepository userLocationRepository;
 
     private final CitiesRepo citiesRepo;
@@ -36,7 +33,7 @@ public class UserLocationServiceImpl implements UserLocationService {
             for(UserLocation t : userLocations){
                 LocationCoordinates innerLC = t.getLocationCoordinates();
                 LocationCoordinates outerLC = coordinatesAndK.locationCoordinates;
-                coordinatesAndK.k+=exp(sqrt(
+                coordinatesAndK.k+=exp(0.3*-sqrt(
                         pow((innerLC.getLatitude())-outerLC.getLatitude(),2)
                         +
                         pow((innerLC.getLongitude())-outerLC.getLongitude(),2)
@@ -61,8 +58,10 @@ public class UserLocationServiceImpl implements UserLocationService {
         City authorizedCity = citiesRepo.getReferenceById(city.getName());
         List<UserLocation> userLocations = userLocationRepository.findByCityName(city.getName());
         List<CoordinatesAndK> coordinatesAndKS = computeKoefs(userLocations);
+        System.out.println(coordinatesAndKS);
+        CoordinatesAndK coordinatesAndK = coordinatesAndKS.stream().max((e, b)->e.k-b.k>0?1:-1).orElseThrow();
 //TODO finish the task management
-        return null;
+        return List.of(coordinatesAndK.locationCoordinates);
     }
 
     private static class CoordinatesAndK{
@@ -73,7 +72,16 @@ public class UserLocationServiceImpl implements UserLocationService {
             this.locationCoordinates = locationCoordinates;
             this.k = k;
         }
+
+        @Override
+        public String toString() {
+            return "CoordinatesAndK{" +
+                    "locationCoordinates=" + locationCoordinates +
+                    ", k=" + k +
+                    '}';
+        }
     }
+
 
     @Override
     public List<UserLocation> getAllUsers() {

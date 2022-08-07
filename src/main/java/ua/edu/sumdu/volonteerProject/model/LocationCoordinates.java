@@ -14,4 +14,5 @@ import javax.persistence.Entity;
 public class LocationCoordinates {
     private double longitude;
     private double latitude;
+
 }
