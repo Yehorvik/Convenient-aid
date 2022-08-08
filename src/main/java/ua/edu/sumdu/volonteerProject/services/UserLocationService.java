@@ -10,6 +10,6 @@ import java.util.List;
 
 public interface UserLocationService {
     public List<LocationCoordinates> getCoordinates(City city);
-    public List<LocationCoordinates> getFittedCoordinatesByLocation(CityDTO city, long amountOfLocations);
+    public List<LocationCoordinates> getFittedCoordinatesByLocation(CityDTO city, int amountOfLocations) throws IllegalAccessException;
     public List<UserLocation> getAllUsers();
 }

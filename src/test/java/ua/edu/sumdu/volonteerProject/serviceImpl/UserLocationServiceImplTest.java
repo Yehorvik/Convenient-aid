@@ -46,7 +46,7 @@ class UserLocationServiceImplTest {
         Random random = new Random();
         LocationCoordinates sumy = new LocationCoordinates(50.9216, 34.80029);
         sum = new City("sumy", 200);
-        for(int i = 0; i < 5; i++){
+        for(int i = 0; i < 50000; i++){
             double lat = random.nextGaussian(sumy.getLatitude(), 0.5);
             double lon = random.nextGaussian(sumy.getLongitude(), 0.5);
             userLocationList.add( new UserLocation(new City("sumy", 150), UUID.randomUUID(),new LocationCoordinates(lon, lat) ,random.nextLong()));
@@ -55,15 +55,15 @@ class UserLocationServiceImplTest {
     }
 
     @Test
-    void getFittedCoordinatesByLocation() {
+    void getFittedCoordinatesByLocation() throws IllegalAccessException {
         BDDMockito.given(citiesRepo.findById("sumy")).willReturn(Optional.of(sum));
         BDDMockito.given(userLocationRepository.findByCityName("sumy")).willReturn(userLocationList);
 
-        System.out.println(userLocationList);
+        //System.out.println(userLocationList);
         long time = System.currentTimeMillis();
 // some code
         System.out.println( userLocationService.getFittedCoordinatesByLocation(new CityDTO("sumy"), 4));
-        System.out.println((System.currentTimeMillis() - time)/1000*60);
+        System.out.println((System.currentTimeMillis() - time)/1000./60);
 
 
     }
