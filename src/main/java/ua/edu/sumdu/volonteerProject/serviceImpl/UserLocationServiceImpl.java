@@ -3,13 +3,13 @@ package ua.edu.sumdu.volonteerProject.serviceImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
-import ua.edu.sumdu.volonteerProject.model.City;
+import ua.edu.sumdu.volonteerProject.DTO.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
-import ua.edu.sumdu.volonteerProject.model.UserLocation;
+import ua.edu.sumdu.volonteerProject.model.ChatLocation;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
 import ua.edu.sumdu.volonteerProject.repos.UserLocationRepository;
 import ua.edu.sumdu.volonteerProject.services.UserLocationService;
+import ua.edu.sumdu.volonteerProject.utils.CoordinateUtils;
 
 import javax.transaction.Transactional;
 
@@ -35,7 +35,8 @@ public class UserLocationServiceImpl implements UserLocationService {
 
     private final CitiesRepo citiesRepo;
 
-    private double computeInnerKoefs(UserLocation currentUser, List<UserLocation> allUsers,double cityArea, int amount,  int from, int to){
+
+    private double computeInnerKoefs(ChatLocation currentUser, List<ChatLocation> allUsers, double cityArea, int amount, int from, int to){
         double retValue = 0;
 
         CoordinatesAndK coordinatesAndK = new CoordinatesAndK(currentUser.getLocationCoordinates(), 0);
@@ -45,28 +46,30 @@ public class UserLocationServiceImpl implements UserLocationService {
             LocationCoordinates outerLC = coordinatesAndK.locationCoordinates;
             //latitude
 
-            double x = (toRadians(innerLC.getLatitude())) - toRadians(outerLC.getLatitude());
-            //longitude
-            double y = (toRadians(innerLC.getLongitude() - outerLC.getLongitude()))*cos((innerLC.getLatitude()+outerLC.getLatitude())*PI/2/180);
-            retValue += exp(SQUARE_KOEF * -sqrt(
-                    x*x + y*y
-            ));
+//            double x = (toRadians(innerLC.getLatitude())) - toRadians(outerLC.getLatitude());
+//            //longitude
+//            double y = (toRadians(innerLC.getLongitude() - outerLC.getLongitude()))*cos((innerLC.getLatitude()+outerLC.getLatitude())*PI/2/180);
+//            sqrt(
+//                    x*x + y*y
+//            )
+            double distanceInKm = CoordinateUtils.calculateDistance(innerLC, outerLC);
+            retValue += exp(SQUARE_KOEF * (-distanceInKm));
         }
         return retValue;
     }
 
-    private List<CoordinatesAndK> computeKoefsMT(List<UserLocation> userLocations,City city, int amount, int from, int to) {
+    private List<CoordinatesAndK> computeKoefsMT(List<ChatLocation> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount, int from, int to) {
 
         List<CoordinatesAndK> coordinatesAndKS = new ArrayList<>();
         for (int i= from; i<to; i++) {
             List<CompletableFuture<Double>> completableFutures = new ArrayList<>();
-            CoordinatesAndK coordinatesAndK = new CoordinatesAndK(userLocations.get(i).getLocationCoordinates(), 0);
+            CoordinatesAndK coordinatesAndK = new CoordinatesAndK(chatLocations.get(i).getLocationCoordinates(), 0);
             int finalI = i;
-            completableFutures.add(  CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, 0,userLocations.size()/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
-            completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()/4,userLocations.size()/2)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
-            completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()/2,userLocations.size()*3/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
+            completableFutures.add(  CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, 0, chatLocations.size()/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
+            completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, chatLocations.size()/4, chatLocations.size()/2)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
+            completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, chatLocations.size()/2, chatLocations.size()*3/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             completableFutures.add(CompletableFuture.
-                    supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()*3/4,userLocations.size())).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
+                    supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, chatLocations.size()*3/4, chatLocations.size())).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             for(CompletableFuture<Double> k : completableFutures){
                 try {
                     coordinatesAndK.k+=k.get();
@@ -82,16 +85,16 @@ public class UserLocationServiceImpl implements UserLocationService {
         return coordinatesAndKS;
     }
 
-    private List<CoordinatesAndK> computeKoefs(List<UserLocation> userLocations,City city, int amount) throws ExecutionException, InterruptedException {
+    private List<CoordinatesAndK> computeKoefs(List<ChatLocation> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount) throws ExecutionException, InterruptedException {
         List<CompletableFuture> completableFutures = new ArrayList<>();
         /*for(int i = 1 ; i<= CORES && userLocations.size()>CORES; i++){
             int finalI = i;
         }
         */
-            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, 0, userLocations.size() / 4)));
-            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, userLocations.size() / 4, userLocations.size() / 2)));
-            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, userLocations.size() / 2, (userLocations.size() * 3) / 4)));
-            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, ((userLocations.size() * 3) / 4), userLocations.size())));
+            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, 0, chatLocations.size() / 4)));
+            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, chatLocations.size() / 4, chatLocations.size() / 2)));
+            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, chatLocations.size() / 2, (chatLocations.size() * 3) / 4)));
+            completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, ((chatLocations.size() * 3) / 4), chatLocations.size())));
         List<CoordinatesAndK> list = new ArrayList<>();
         for (CompletableFuture t:
              completableFutures) {
@@ -104,27 +107,25 @@ public class UserLocationServiceImpl implements UserLocationService {
 
     @Override
     public List<LocationCoordinates> getCoordinates(City city) {
-        if(city == null){
-            throw new NullPointerException("city cant be null");
-        }
+        citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
         return userLocationRepository.findByCityName(city.getName()).stream().map(e->{return e.getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     @Transactional
-    public List<LocationCoordinates> getFittedCoordinatesByLocation(CityDTO city, int amountOfLocations) throws IllegalAccessException {
+    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations) throws IllegalAccessException {
         if(amountOfLocations <=0){
             throw new IllegalAccessException("amount of locations cant be negative");
         }
-        City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
-        List<UserLocation> userLocations = userLocationRepository.findByCityName(city.getName());
+        ua.edu.sumdu.volonteerProject.model.City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
+        List<ChatLocation> chatLocations = userLocationRepository.findByCityName(city.getName());
         final double AREA_KOEF = sqrt(authorizedCity.getArea()/PI)/amountOfLocations*1.5;
         System.out.println(AREA_KOEF);
         List<CoordinatesAndK> coordinatesAndKS= null;
         List<LocationCoordinates> coordinates = new ArrayList<>();
         for(int currentAmount = amountOfLocations; currentAmount>0; currentAmount--) {
             try {
-                coordinatesAndKS = computeKoefs(userLocations, authorizedCity, currentAmount);
+                coordinatesAndKS = computeKoefs(chatLocations, authorizedCity, currentAmount);
             } catch (ExecutionException e) {
                 e.printStackTrace();
             } catch (InterruptedException e) {
@@ -134,23 +135,10 @@ public class UserLocationServiceImpl implements UserLocationService {
             if(coordinatesAndK != null) {
                 coordinates.add(coordinatesAndK.locationCoordinates);
                 int finalCurrentAmount = currentAmount;
-                userLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getLocationCoordinates()));
-                userLocations.removeIf(e ->{
-                    double eLat = toRadians(e.getLocationCoordinates().getLatitude());
-                    double eLon = toRadians(e.getLocationCoordinates().getLongitude());
-                    double mLat = toRadians(coordinatesAndK.locationCoordinates.getLatitude());
-                    double mLon = toRadians( coordinatesAndK.locationCoordinates.getLongitude());
-                    double a = sqrt
-                                (
-                                                (mLat-eLat)*(mLat-eLat)
-                                        +
-                                                (eLon-mLon)*(eLon-mLon)*cos((eLat+mLat)/2)
-                                )*6371
-                            ;
-                         return a               <
-                                        AREA_KOEF
-                        &&
-                        userLocations.size() > finalCurrentAmount - 1;});
+                chatLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getLocationCoordinates()));
+                chatLocations.removeIf(e ->{
+                         double distance = CoordinateUtils.calculateDistance(e.getLocationCoordinates(), coordinatesAndK.locationCoordinates);
+                         return distance < AREA_KOEF && chatLocations.size() > finalCurrentAmount - 1;});
             }else{
                 break;
             }
@@ -177,9 +165,10 @@ public class UserLocationServiceImpl implements UserLocationService {
         }
     }
 
-
     @Override
-    public List<UserLocation> getAllUsers() {
-        return null;
+    @Transactional
+    public List<ChatLocation> findUsersByCity(City city) {
+        citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
+        return userLocationRepository.findByCityName(city.getName());
     }
 }

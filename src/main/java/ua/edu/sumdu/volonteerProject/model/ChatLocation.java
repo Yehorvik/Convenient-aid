@@ -6,24 +6,24 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
-import java.util.UUID;
 
 @Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class UserLocation {
+public class ChatLocation {
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "city_name", referencedColumnName = "name")
     private City cityName;
 
-    @Id
-    @Column
-    private UUID id;
 
     @Embedded
     private LocationCoordinates locationCoordinates;
 
-    private long userId;
+
+
+    @Id
+    @Column(name = "user_id")
+    private long chatId;
 }
