@@ -1,11 +1,7 @@
 package ua.edu.sumdu.volonteerProject.serviceImpl;
 
 import lombok.AllArgsConstructor;
-import lombok.extern.log4j.Log4j;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.logging.Log;
-import org.apache.logging.log4j.Logger;
-//import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
 import ua.edu.sumdu.volonteerProject.model.City;
@@ -28,8 +24,9 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Slf4j
 public class UserLocationServiceImpl implements UserLocationService {
-    private static int CORES = 4;
-    private static final double SOME_REGULAR_CONSTANT_KOEF = 10;
+
+    private static final double SOME_REGULAR_CONSTANT_KOEF = 25;
+    private static final double CONSTANT_FOR_EXP = 90000;
     private static final double LAT_TO_KM = 110.573;
     private static final double LON_TO_KM = 111.320;
 
@@ -39,20 +36,23 @@ public class UserLocationServiceImpl implements UserLocationService {
     private final CitiesRepo citiesRepo;
 
     private double computeInnerKoefs(UserLocation currentUser, List<UserLocation> allUsers,double cityArea, int amount,  int from, int to){
-        double ret_value = 0;
+        double retValue = 0;
+
         CoordinatesAndK coordinatesAndK = new CoordinatesAndK(currentUser.getLocationCoordinates(), 0);
-        final double SQUARE_KOEF = SOME_REGULAR_CONSTANT_KOEF * (double) amount / cityArea;
+        final double SQUARE_KOEF = CONSTANT_FOR_EXP * (double) amount / cityArea;
         for (int i = from; i < to; i++) {
             LocationCoordinates innerLC = allUsers.get(i).getLocationCoordinates();
             LocationCoordinates outerLC = coordinatesAndK.locationCoordinates;
-            coordinatesAndK.k += exp(SQUARE_KOEF * -sqrt(
-                    pow((innerLC.getLatitude()) - outerLC.getLatitude(), 2)
-                            +
-                            pow((innerLC.getLongitude()) - outerLC.getLongitude(), 2)
-            ));
+            //latitude
 
+            double x = (toRadians(innerLC.getLatitude())) - toRadians(outerLC.getLatitude());
+            //longitude
+            double y = (toRadians(innerLC.getLongitude() - outerLC.getLongitude()))*cos((innerLC.getLatitude()+outerLC.getLatitude())*PI/2/180);
+            retValue += exp(SQUARE_KOEF * -sqrt(
+                    x*x + y*y
+            ));
         }
-        return coordinatesAndK.k;
+        return retValue;
     }
 
     private List<CoordinatesAndK> computeKoefsMT(List<UserLocation> userLocations,City city, int amount, int from, int to) {
@@ -65,7 +65,8 @@ public class UserLocationServiceImpl implements UserLocationService {
             completableFutures.add(  CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, 0,userLocations.size()/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()/4,userLocations.size()/2)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()/2,userLocations.size()*3/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
-            completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()*3/4,userLocations.size())).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
+            completableFutures.add(CompletableFuture.
+                    supplyAsync(()-> this.computeInnerKoefs(userLocations.get(finalI), userLocations,city.getArea(),amount, userLocations.size()*3/4,userLocations.size())).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             for(CompletableFuture<Double> k : completableFutures){
                 try {
                     coordinatesAndK.k+=k.get();
@@ -77,6 +78,7 @@ public class UserLocationServiceImpl implements UserLocationService {
             }
             coordinatesAndKS.add(coordinatesAndK);
         }
+       // System.out.println(coordinatesAndKS);
         return coordinatesAndKS;
     }
 
@@ -86,8 +88,6 @@ public class UserLocationServiceImpl implements UserLocationService {
             int finalI = i;
         }
         */
-
-
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, 0, userLocations.size() / 4)));
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, userLocations.size() / 4, userLocations.size() / 2)));
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(userLocations, city, amount, userLocations.size() / 2, (userLocations.size() * 3) / 4)));
@@ -98,7 +98,7 @@ public class UserLocationServiceImpl implements UserLocationService {
             list.addAll(
             (List<CoordinatesAndK>)t.get());
         }
-
+        System.out.println(list);
         return list;
     }
 
@@ -118,8 +118,8 @@ public class UserLocationServiceImpl implements UserLocationService {
         }
         City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
         List<UserLocation> userLocations = userLocationRepository.findByCityName(city.getName());
-        final double LOCATION_LAT_KOEF = authorizedCity.getArea()/((double) amountOfLocations*LAT_TO_KM * SOME_REGULAR_CONSTANT_KOEF/2);
-        final double LOCATION_LON_KOEF = authorizedCity.getArea()/((double) amountOfLocations*LON_TO_KM * SOME_REGULAR_CONSTANT_KOEF/2);
+        final double AREA_KOEF = sqrt(authorizedCity.getArea()/PI)/amountOfLocations*1.5;
+        System.out.println(AREA_KOEF);
         List<CoordinatesAndK> coordinatesAndKS= null;
         List<LocationCoordinates> coordinates = new ArrayList<>();
         for(int currentAmount = amountOfLocations; currentAmount>0; currentAmount--) {
@@ -135,18 +135,22 @@ public class UserLocationServiceImpl implements UserLocationService {
                 coordinates.add(coordinatesAndK.locationCoordinates);
                 int finalCurrentAmount = currentAmount;
                 userLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getLocationCoordinates()));
-                userLocations.removeIf(e -> (
-                        abs(e.getLocationCoordinates().getLatitude() - coordinatesAndK.locationCoordinates.getLatitude())
-                                <
-                                LOCATION_LAT_KOEF
-                                ||
-                                abs(e.getLocationCoordinates().getLongitude() - coordinatesAndK.locationCoordinates.getLongitude())
-                                        <
-                                        LOCATION_LON_KOEF / cos(coordinatesAndK.locationCoordinates.getLatitude() * PI / 180))
+                userLocations.removeIf(e ->{
+                    double eLat = toRadians(e.getLocationCoordinates().getLatitude());
+                    double eLon = toRadians(e.getLocationCoordinates().getLongitude());
+                    double mLat = toRadians(coordinatesAndK.locationCoordinates.getLatitude());
+                    double mLon = toRadians( coordinatesAndK.locationCoordinates.getLongitude());
+                    double a = sqrt
+                                (
+                                                (mLat-eLat)*(mLat-eLat)
+                                        +
+                                                (eLon-mLon)*(eLon-mLon)*cos((eLat+mLat)/2)
+                                )*6371
+                            ;
+                         return a               <
+                                        AREA_KOEF
                         &&
-                        userLocations.size() > finalCurrentAmount - 1);
-                //System.out.println("LOCATION LAT KOEF: " + LOCATION_LAT_KOEF + " LOCATION LON KOEF: " + LOCATION_LON_KOEF);
-                //System.out.println(coordinatesAndKS);
+                        userLocations.size() > finalCurrentAmount - 1;});
             }else{
                 break;
             }
