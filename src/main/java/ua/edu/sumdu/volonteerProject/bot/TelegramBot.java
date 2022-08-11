@@ -33,6 +33,21 @@ public class TelegramBot {
                 .resolveTemplate("token", this.token);
     }
 
+    public void sendMessagesWithInlineBrd(List<Long> chat_ids , String message, String replyText) throws TelegramSendMessageError {
+        try {
+            for (long a : chat_ids) {
+                webTarget.path("sendMessage")
+                        .queryParam("chat_id", a)
+                        .queryParam("text", message)
+                        .queryParam("reply_markup", "{InlineKeyboardButton:{text:"+replyText+"}}")
+                        .request()
+                        .get();
+            }
+        }catch(Exception e){
+            throw new TelegramSendMessageError("cant send the message", e);
+        }
+    }
+
     public void sendMessage(List<Long> chat_ids , String message) throws TelegramSendMessageError {
         try {
             for (long a : chat_ids) {

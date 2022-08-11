@@ -8,7 +8,8 @@ import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 import ua.edu.sumdu.volonteerProject.model.ChatLocation;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
-import ua.edu.sumdu.volonteerProject.repos.UserLocationRepository;
+import ua.edu.sumdu.volonteerProject.repos.ChatLocationRepository;
+import ua.edu.sumdu.volonteerProject.repos.UserVotesRepository;
 import ua.edu.sumdu.volonteerProject.services.TelegramBotPushingService;
 import ua.edu.sumdu.volonteerProject.utils.CoordinateUtils;
 
@@ -21,22 +22,27 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Service
 public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
-    private final UserLocationRepository userLocationRepository;
+    private final ChatLocationRepository chatLocationRepository;
     private final CitiesRepo citiesRepo;
+    private final UserVotesRepository userVotesRepository;
 
     private final String MESSAGE = "Do you want to participate in the next volonteers poll?";
+    private final String REPLY_MESSAGE = "YES!";
 
     private TelegramBot telegramBot;
 
-    public void pushMessagesToUsers(City city){
-        citiesRepo.findById(city.getName()).orElseThrow(() -> new NullPointerException("city doesnt exist"));
-        userLocationRepository.findByCityName(city.getName());
-    }
+//    public void pushMessagesToUsers(City city){
+//        citiesRepo.findById(city.getName()).orElseThrow(() -> new NullPointerException("city doesnt exist"));
+//        List<ChatLocation> chatLocations = chatLocationRepository.findByCityName(city);
+//        for(ChatLocation chatLocation: chatLocations){
+//            chatLocation
+//        }
+//    }
 
     @Transactional
     @Override
     public void pushMessagesToUsers(City city, List<LocationCoordinates> locationCoordinates) throws TelegramSendMessageError {
-        List<ChatLocation> chatLocations =  userLocationRepository.findByCityName(city.getName());
+        List<ChatLocation> chatLocations =  chatLocationRepository.findByCityName(city);
         Map<Long, LocationCoordinates> chatsAndLocations = new HashMap<>();
         chatLocations.stream().parallel().forEach(e -> {
 
@@ -50,8 +56,8 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     @Transactional
     @Override
     public void createPoll(City city) throws TelegramSendMessageError {
-        List<ChatLocation> chatLocations =  userLocationRepository.findByCityName(city.getName());
+        List<ChatLocation> chatLocations =  chatLocationRepository.findByCityName(city);
         List<Long> ids = chatLocations.stream().map(e->e.getChatId()).collect(Collectors.toUnmodifiableList());
-        telegramBot.sendMessage(ids,MESSAGE);
+        telegramBot.sendMessagesWithInlineBrd(ids,MESSAGE,REPLY_MESSAGE);
     }
 }

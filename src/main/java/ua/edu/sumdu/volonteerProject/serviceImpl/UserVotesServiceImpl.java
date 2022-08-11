@@ -3,18 +3,21 @@ package ua.edu.sumdu.volonteerProject.serviceImpl;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import ua.edu.sumdu.volonteerProject.DTO.City;
+import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 import ua.edu.sumdu.volonteerProject.model.ChatLocation;
+import ua.edu.sumdu.volonteerProject.model.UserVote;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
-import ua.edu.sumdu.volonteerProject.repos.UserLocationRepository;
-import ua.edu.sumdu.volonteerProject.services.UserLocationService;
+import ua.edu.sumdu.volonteerProject.repos.ChatLocationRepository;
+import ua.edu.sumdu.volonteerProject.repos.UserVotesRepository;
+import ua.edu.sumdu.volonteerProject.services.UserVotesService;
 import ua.edu.sumdu.volonteerProject.utils.CoordinateUtils;
 
 import javax.transaction.Transactional;
 
 import static java.lang.Math.*;
 
+import java.sql.Date;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -23,7 +26,7 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 @Slf4j
-public class UserLocationServiceImpl implements UserLocationService {
+public class UserVotesServiceImpl implements UserVotesService {
 
     private static final double SOME_REGULAR_CONSTANT_KOEF = 25;
     private static final double CONSTANT_FOR_EXP = 90000;
@@ -31,18 +34,19 @@ public class UserLocationServiceImpl implements UserLocationService {
     private static final double LON_TO_KM = 111.320;
 
    // private final ModelMapper modelMapper;
-    private final UserLocationRepository userLocationRepository;
+    private final ChatLocationRepository chatLocationRepository;
 
     private final CitiesRepo citiesRepo;
 
+    private final UserVotesRepository userVotesRepository;
 
-    private double computeInnerKoefs(ChatLocation currentUser, List<ChatLocation> allUsers, double cityArea, int amount, int from, int to){
+    private double computeInnerKoefs(UserVote currentUser, List<UserVote> allUsers, double cityArea, int amount, int from, int to){
         double retValue = 0;
 
-        CoordinatesAndK coordinatesAndK = new CoordinatesAndK(currentUser.getLocationCoordinates(), 0);
+        CoordinatesAndK coordinatesAndK = new CoordinatesAndK(currentUser.getChatLocation().getLocationCoordinates(), 0);
         final double SQUARE_KOEF = CONSTANT_FOR_EXP * (double) amount / cityArea;
         for (int i = from; i < to; i++) {
-            LocationCoordinates innerLC = allUsers.get(i).getLocationCoordinates();
+            LocationCoordinates innerLC = allUsers.get(i).getChatLocation().getLocationCoordinates();
             LocationCoordinates outerLC = coordinatesAndK.locationCoordinates;
             //latitude
 
@@ -58,12 +62,12 @@ public class UserLocationServiceImpl implements UserLocationService {
         return retValue;
     }
 
-    private List<CoordinatesAndK> computeKoefsMT(List<ChatLocation> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount, int from, int to) {
+    private List<CoordinatesAndK> computeKoefsMT(List<UserVote> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount, int from, int to) {
 
         List<CoordinatesAndK> coordinatesAndKS = new ArrayList<>();
         for (int i= from; i<to; i++) {
             List<CompletableFuture<Double>> completableFutures = new ArrayList<>();
-            CoordinatesAndK coordinatesAndK = new CoordinatesAndK(chatLocations.get(i).getLocationCoordinates(), 0);
+            CoordinatesAndK coordinatesAndK = new CoordinatesAndK(chatLocations.get(i).getChatLocation().getLocationCoordinates(), 0);
             int finalI = i;
             completableFutures.add(  CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, 0, chatLocations.size()/4)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
             completableFutures.add(CompletableFuture.supplyAsync(()-> this.computeInnerKoefs(chatLocations.get(finalI), chatLocations,city.getArea(),amount, chatLocations.size()/4, chatLocations.size()/2)).exceptionally((e) -> {log.error("exception in  computeKoefsMT",e); return null;}));
@@ -85,7 +89,7 @@ public class UserLocationServiceImpl implements UserLocationService {
         return coordinatesAndKS;
     }
 
-    private List<CoordinatesAndK> computeKoefs(List<ChatLocation> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount) throws ExecutionException, InterruptedException {
+    private List<CoordinatesAndK> computeKoefs(List<UserVote> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount) throws ExecutionException, InterruptedException {
         List<CompletableFuture> completableFutures = new ArrayList<>();
         /*for(int i = 1 ; i<= CORES && userLocations.size()>CORES; i++){
             int finalI = i;
@@ -106,19 +110,22 @@ public class UserLocationServiceImpl implements UserLocationService {
     }
 
     @Override
-    public List<LocationCoordinates> getCoordinates(City city) {
-        citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
-        return userLocationRepository.findByCityName(city.getName()).stream().map(e->{return e.getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
+    public List<LocationCoordinates> getCoordinates(City cityDTO) {
+        if(cityDTO == null){
+            throw new NullPointerException("city cant be null!");
+        }
+        //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
+        return chatLocationRepository.findByCityName(cityDTO).stream().map(e->{return e.getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     @Transactional
-    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations) throws IllegalAccessException {
+    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations, Date fromDate) throws IllegalAccessException {
         if(amountOfLocations <=0){
             throw new IllegalAccessException("amount of locations cant be negative");
         }
         ua.edu.sumdu.volonteerProject.model.City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
-        List<ChatLocation> chatLocations = userLocationRepository.findByCityName(city.getName());
+        List<UserVote> chatLocations = userVotesRepository.getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(fromDate, authorizedCity);
         final double AREA_KOEF = sqrt(authorizedCity.getArea()/PI)/amountOfLocations*1.5;
         System.out.println(AREA_KOEF);
         List<CoordinatesAndK> coordinatesAndKS= null;
@@ -135,9 +142,9 @@ public class UserLocationServiceImpl implements UserLocationService {
             if(coordinatesAndK != null) {
                 coordinates.add(coordinatesAndK.locationCoordinates);
                 int finalCurrentAmount = currentAmount;
-                chatLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getLocationCoordinates()));
+                chatLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getChatLocation().getLocationCoordinates()));
                 chatLocations.removeIf(e ->{
-                         double distance = CoordinateUtils.calculateDistance(e.getLocationCoordinates(), coordinatesAndK.locationCoordinates);
+                         double distance = CoordinateUtils.calculateDistance(e.getChatLocation().getLocationCoordinates(), coordinatesAndK.locationCoordinates);
                          return distance < AREA_KOEF && chatLocations.size() > finalCurrentAmount - 1;});
             }else{
                 break;
@@ -168,7 +175,7 @@ public class UserLocationServiceImpl implements UserLocationService {
     @Override
     @Transactional
     public List<ChatLocation> findUsersByCity(City city) {
-        citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
-        return userLocationRepository.findByCityName(city.getName());
+        //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
+        return chatLocationRepository.findByCityName(city);
     }
 }

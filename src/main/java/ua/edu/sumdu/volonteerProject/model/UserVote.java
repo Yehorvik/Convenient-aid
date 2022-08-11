@@ -13,7 +13,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Data
 @NoArgsConstructor
-public class UserVotes {
+public class UserVote {
     @Id
     @GeneratedValue
     private UUID voteId;
