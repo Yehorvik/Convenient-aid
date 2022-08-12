@@ -110,12 +110,12 @@ public class UserVotesServiceImpl implements UserVotesService {
     }
 
     @Override
-    public List<LocationCoordinates> getCoordinates(City cityDTO) {
-        if(cityDTO == null){
+    public List<LocationCoordinates> getCoordinates(City city, Date date) {
+        if(city == null){
             throw new NullPointerException("city cant be null!");
         }
         //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
-        return chatLocationRepository.findByCityName(cityDTO).stream().map(e->{return e.getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
+        return userVotesRepository.getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(date ,city).stream().map(e->{return e.getChatLocation().getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
     }
 
     @Override
@@ -172,10 +172,4 @@ public class UserVotesServiceImpl implements UserVotesService {
         }
     }
 
-    @Override
-    @Transactional
-    public List<ChatLocation> findUsersByCity(City city) {
-        //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
-        return chatLocationRepository.findByCityName(city);
-    }
 }

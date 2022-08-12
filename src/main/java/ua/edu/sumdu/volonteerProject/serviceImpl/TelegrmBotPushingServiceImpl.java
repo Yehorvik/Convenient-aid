@@ -44,11 +44,16 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     public void pushMessagesToUsers(City city, List<LocationCoordinates> locationCoordinates) throws TelegramSendMessageError {
         List<ChatLocation> chatLocations =  chatLocationRepository.findByCityName(city);
         Map<Long, LocationCoordinates> chatsAndLocations = new HashMap<>();
+        System.out.println(chatLocations);
+        System.out.println(locationCoordinates);
         chatLocations.stream().parallel().forEach(e -> {
 
             chatsAndLocations.put(e.getChatId(), locationCoordinates.stream().min((a, b) -> {
+                if(a.equals(b)){
+                    return 0;
+                }
                 return
-                    (CoordinateUtils.calculateDistance(e.getLocationCoordinates(), a) - CoordinateUtils.calculateDistance(e.getLocationCoordinates(), b))<0?-1:1;}).orElse(null));
+                    (CoordinateUtils.calculateDistance(e.getLocationCoordinates(), a) - CoordinateUtils.calculateDistance(e.getLocationCoordinates(), b))<=0?-1:1;}).orElse(null));
             });
         telegramBot.sendLocations(chatsAndLocations);
     }
