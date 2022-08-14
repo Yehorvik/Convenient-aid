@@ -1,6 +1,5 @@
-package ua.edu.sumdu.volonteerProject.model;
+package ua.edu.sumdu.volonteerProject.security;
 
-import org.jboss.resteasy.spi.touri.MappedBy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -41,21 +40,21 @@ public class JwtUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return isBlocked;
+        return !isBlocked;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return isBlocked;
+        return !isBlocked;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return isBlocked;
+        return !isBlocked;
     }
 
     @Override
     public boolean isEnabled() {
-        return isBlocked;
+        return !isBlocked;
     }
 }

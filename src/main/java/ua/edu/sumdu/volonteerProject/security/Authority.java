@@ -1,7 +1,8 @@
-package ua.edu.sumdu.volonteerProject.model;
+package ua.edu.sumdu.volonteerProject.security;
 
 import lombok.Data;
 import org.springframework.security.core.GrantedAuthority;
+import ua.edu.sumdu.volonteerProject.security.JwtUserDetails;
 
 import javax.persistence.*;
 import java.util.List;
