@@ -48,7 +48,7 @@ class UserVotesServiceImplTest {
             double lat = random.nextGaussian(sumy.getLatitude(), 0.1);
             double lon = random.nextGaussian(sumy.getLongitude(), 0.1);
 
-            userVoteLocationList.add(new UserVote(UUID.randomUUID(), new Date(2022, 8, 10), new ChatLocation(sum,new LocationCoordinates(lon, lat), 11111111)));
+            //userVoteLocationList.add(new UserVote(UUID.randomUUID(), new Date(2022, 8, 10), new ChatLocation(sum,new LocationCoordinates(lon, lat), 11111111)));
         }
         //staticUserVoteList.add(new ChatLocation(sum, UUID.randomUUID(), new LocationCoordinates(50.915444456344225, 34.754401351662146),random.nextLong()));
         //staticUserVoteList.add(new ChatLocation(sum, UUID.randomUUID(), new LocationCoordinates(50.81930734543224, 34.82120508973681),random.nextLong()));
