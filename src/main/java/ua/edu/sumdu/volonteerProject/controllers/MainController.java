@@ -32,8 +32,7 @@ public class MainController {
     @GetMapping("/getVotes")
     public List<LocationCoordinates> getAll(@RequestParam String city, @RequestParam LocalDate localDate){
         City currentCity= cityService.getCityByName(new CityDTO(city));
-        List<LocationCoordinates> locationCoordinatesList = userVotesService.getCoordinates(currentCity, Date.valueOf(localDate));
-        return locationCoordinatesList;
+        return userVotesService.getCoordinates(currentCity, Date.valueOf(localDate));
     }
 
 

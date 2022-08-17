@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.repos.JwtUserDetailsRepository;
@@ -13,6 +15,7 @@ import ua.edu.sumdu.volonteerProject.repos.JwtUserDetailsRepository;
 public class CustomUserDetailsService implements UserDetailsManager {
     private final JwtUserDetailsRepository userDetailsRepository;
 
+    private final PasswordEncoder bCryptPasswordEncoder;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -21,6 +24,7 @@ public class CustomUserDetailsService implements UserDetailsManager {
 
     @Override
     public void createUser(UserDetails user) {
+        ((JwtUserDetails)user).setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
         userDetailsRepository.save((JwtUserDetails) user);
     }
 
