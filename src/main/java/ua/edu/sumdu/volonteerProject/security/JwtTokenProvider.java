@@ -1,15 +1,17 @@
 package ua.edu.sumdu.volonteerProject.security;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+@Slf4j
 @Component
 public class JwtTokenProvider {
     //generate token
@@ -35,5 +37,29 @@ public class JwtTokenProvider {
 
     //validate
 
+    public boolean validateToken(String token){
+        try {
+            Jwts.parser().setSigningKey(SecurityConstraints.SECRET).parseClaimsJws(token);
+            return true;
+        }catch (SignatureException exception)
+        {
+            log.error("signature exception in validation ", exception);
+        }catch (MalformedJwtException exception){
+            log.error("MalformedJwtException in validation ", exception);
+        }catch (ExpiredJwtException exception){
+            log.error("ExpiredJwtException in validation ", exception);
+        }catch (UnsupportedJwtException exception){
+            log.error("UnsupportedJwtException in validation ", exception);
+        }catch (IllegalArgumentException exception){
+            log.error("IllegalARGEX in validation ", exception);
+        }
+        return false;
+    }
     //getuserid
+
+    public UUID getUserIdFromJwt(String token){
+        Claims claims = Jwts.parser().setSigningKey(SecurityConstraints.SECRET).parseClaimsJws(token).getBody();
+        String id = (String)claims.get("id");
+        return UUID.fromString(id);
+    }
 }

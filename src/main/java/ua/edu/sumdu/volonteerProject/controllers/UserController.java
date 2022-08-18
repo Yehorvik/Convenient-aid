@@ -1,6 +1,7 @@
 package ua.edu.sumdu.volonteerProject.controllers;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.spi.touri.MappedBy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,11 @@ import ua.edu.sumdu.volonteerProject.DTO.UserDTO;
 import ua.edu.sumdu.volonteerProject.errors.UsernameAlreadyExistException;
 import ua.edu.sumdu.volonteerProject.payload.JwtLoginSuccessResponse;
 import ua.edu.sumdu.volonteerProject.payload.LoginRequest;
+import ua.edu.sumdu.volonteerProject.security.CustomUserDetailsService;
 import ua.edu.sumdu.volonteerProject.security.JwtTokenProvider;
 import ua.edu.sumdu.volonteerProject.security.JwtUserDetails;
 import ua.edu.sumdu.volonteerProject.security.SecurityConstraints;
+import ua.edu.sumdu.volonteerProject.services.MapValidationErrorService;
 import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 import ua.edu.sumdu.volonteerProject.validatior.UserValidator;
 
@@ -30,14 +33,17 @@ import javax.validation.Valid;
 @Controller
 @AllArgsConstructor
 @RequestMapping("/api/user")
+@Slf4j
 public class UserController {
 
-    private final UserDetailsManager userDetailsManager;
+    private final CustomUserDetailsService userDetailsManager;
     private final UserValidator userValidator;
 
     private final JwtTokenProvider tokenProvider;
 
     private final AuthenticationManager authenticationManager;
+
+    private final MapValidationErrorService validationErrorService;
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody  UserDTO userDTO, BindingResult bindingResult){
@@ -45,20 +51,28 @@ public class UserController {
             return ResponseEntity.unprocessableEntity().body("password dont match");
         }
         userValidator.validate(userDTO, bindingResult);
+        ResponseEntity errors = validationErrorService.mapErrors(bindingResult);
+        if(errors!=null){
+            return errors;
+        }
         if(userDetailsManager.userExists(userDTO.getUsername())){
             throw new UsernameAlreadyExistException("username " + userDTO.getUsername()+ " is already exist");
         }
         JwtUserDetails jwtUserDetails = DtoConverterUtils.convertUserDetails(userDTO);
         userDetailsManager.createUser(jwtUserDetails);
         return ResponseEntity.ok("user successfully created");
+
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult bindingResult){
-
+        ResponseEntity<?> errors = validationErrorService.mapErrors(bindingResult);
+        if(errors!=null){
+            return errors;
+        }
         Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                 loginRequest.getUsername(),
-                 loginRequest.getPassword()
+                loginRequest.getPassword()
         ));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = SecurityConstraints.TOKEN_PREFIX + tokenProvider.generateToken(authentication);

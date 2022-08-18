@@ -19,9 +19,7 @@ public class UserValidator implements Validator {
     private static final Pattern pattern = Pattern.compile(PASSWORD_PATTERN);
     @Override
     public boolean supports(Class<?> clazz) {
-        clazz.equals(UserDTO.class);
-
-        return false;
+        return clazz.equals(UserDTO.class);
     }
 
     @Override
