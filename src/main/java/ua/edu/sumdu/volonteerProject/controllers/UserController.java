@@ -47,9 +47,6 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody  UserDTO userDTO, BindingResult bindingResult){
-        if(!userDTO.getPassword().equals(userDTO.getRepeatPassword())){
-            return ResponseEntity.unprocessableEntity().body("password dont match");
-        }
         userValidator.validate(userDTO, bindingResult);
         ResponseEntity errors = validationErrorService.mapErrors(bindingResult);
         if(errors!=null){

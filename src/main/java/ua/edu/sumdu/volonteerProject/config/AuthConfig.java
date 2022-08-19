@@ -16,6 +16,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import ua.edu.sumdu.volonteerProject.security.CustomUserDetailsService;
 import ua.edu.sumdu.volonteerProject.security.JwtAuthenticationFilter;
 import ua.edu.sumdu.volonteerProject.security.JwtTokenProvider;
@@ -35,12 +36,12 @@ public class AuthConfig extends WebSecurityConfigurerAdapter {
     private final PasswordEncoder passwordEncoder;
     private final UserDetailsService userDetailsManager;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-    private final JwtTokenProvider jwtTokenProvider;
+    private final JwtAuthenticationFilter authenticationFilter;
 
-    @Bean
-    public JwtAuthenticationFilter authenticationFilter(){
-        return new JwtAuthenticationFilter( jwtTokenProvider , (CustomUserDetailsService) userDetailsManager);
-    }
+//    @Bean
+//    public JwtAuthenticationFilter authenticationFilter(){
+//        return new JwtAuthenticationFilter( jwtTokenProvider , (CustomUserDetailsService) userDetailsManager);
+//    }
 
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
@@ -66,13 +67,13 @@ public class AuthConfig extends WebSecurityConfigurerAdapter {
                 .anonymous()
                 .mvcMatchers("/volunteers/**")
                 .hasAuthority("VOLUNTEER")
-                .antMatchers("*")
+                .antMatchers("/**")
                 .authenticated()
                 .and()
                 .exceptionHandling()
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                 ;
-        http.addFilterBefore(authenticationFilter(), JwtAuthenticationFilter.class);
+        http.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
     }
 

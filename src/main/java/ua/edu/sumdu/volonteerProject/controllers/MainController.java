@@ -1,6 +1,7 @@
 package ua.edu.sumdu.volonteerProject.controllers;
 
 import lombok.AllArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
@@ -11,6 +12,7 @@ import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 import ua.edu.sumdu.volonteerProject.model.UserVote;
+import ua.edu.sumdu.volonteerProject.security.SecurityConstraints;
 import ua.edu.sumdu.volonteerProject.services.CityService;
 import ua.edu.sumdu.volonteerProject.services.TelegramBotPushingService;
 import ua.edu.sumdu.volonteerProject.services.UserVotesService;
@@ -22,6 +24,7 @@ import java.util.List;
 
 @RestController
 @AllArgsConstructor
+@PreAuthorize(value = "ADMIN")
 public class MainController {
 
     private final UserVotesService userVotesService;
