@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +35,7 @@ import javax.validation.Valid;
 @AllArgsConstructor
 @RequestMapping("/api/user")
 @Slf4j
+@CrossOrigin( origins = "http://localhost:3000")
 public class UserController {
 
     private final CustomUserDetailsService userDetailsManager;
@@ -63,6 +65,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult bindingResult){
+
         ResponseEntity<?> errors = validationErrorService.mapErrors(bindingResult);
         if(errors!=null){
             return errors;

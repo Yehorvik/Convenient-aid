@@ -1,25 +1,23 @@
 package ua.edu.sumdu.volonteerProject.controllers;
 
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
+import ua.edu.sumdu.volonteerProject.DTO.SelectedLocationsDTO;
 import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
-import ua.edu.sumdu.volonteerProject.model.UserVote;
-import ua.edu.sumdu.volonteerProject.security.SecurityConstraints;
 import ua.edu.sumdu.volonteerProject.services.CityService;
+import ua.edu.sumdu.volonteerProject.services.LogHistoryService;
 import ua.edu.sumdu.volonteerProject.services.TelegramBotPushingService;
 import ua.edu.sumdu.volonteerProject.services.UserVotesService;
+import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -29,6 +27,7 @@ public class MainController {
 
     private final UserVotesService userVotesService;
     private final TelegramBotPushingService telegramBotPushingService;
+    private final LogHistoryService logHistoryService;
 
     private final CityService cityService;
 
@@ -39,23 +38,34 @@ public class MainController {
     }
 
 
-    @GetMapping("/sendLocation")
-    public String sendLocations(@RequestParam String cityName) throws IllegalAccessException, TelegramSendMessageError {
-        City city =  cityService.getCityByName(new CityDTO(cityName));
-        List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, 2, Date.valueOf(LocalDate.now().minusDays(1)));
-        telegramBotPushingService.pushMessagesToUsers(city, locationCoordinatesList);
-        return "ok";
+    @PostMapping("/sendLocation")
+    public ResponseEntity sendLocations(@RequestBody SelectedLocationsDTO selectedLocations) throws IllegalAccessException, TelegramSendMessageError {
+        City city =  cityService.getCityByName(new CityDTO(selectedLocations.getCity()));
+        telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
+        logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
+        return ResponseEntity.ok("locations was successfully sent");
     }
 
+    @GetMapping("/getBestPoints")
+    public ResponseEntity<?> getBestFittingPoints(@RequestParam int amountOfPoints, @RequestParam String cityName){
+        City city = cityService.getCityByName(new CityDTO(cityName));
+        try {
+            List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, amountOfPoints, Date.valueOf(LocalDate.now().minusDays(1)));
+            return ResponseEntity.ok( locationCoordinatesList);
+        } catch (IllegalAccessException e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
 
     @GetMapping("/sendMessage")
-    public String sendMessage(@RequestParam String city){
+    public ResponseEntity<?> sendMessage(@RequestParam String city){
         CityDTO cityDTO = new CityDTO(city);
         try {
             telegramBotPushingService.createPoll(cityService.getCityByName(cityDTO));
         } catch (TelegramSendMessageError e) {
             e.printStackTrace();
+            return new ResponseEntity<String>("something went wrong while we sending your message", HttpStatus.BAD_REQUEST);
         }
-        return "Message has been send";
+        return ResponseEntity.ok("your poll was successfully send");
     }
 }

@@ -1,7 +1,9 @@
 package ua.edu.sumdu.volonteerProject.utils;
 
 import org.springframework.security.core.GrantedAuthority;
+import ua.edu.sumdu.volonteerProject.DTO.SelectedLocationsDTO;
 import ua.edu.sumdu.volonteerProject.DTO.UserDTO;
+import ua.edu.sumdu.volonteerProject.model.SendLocationsDetails;
 import ua.edu.sumdu.volonteerProject.security.Authority;
 import ua.edu.sumdu.volonteerProject.security.JwtUserDetails;
 
@@ -22,5 +24,9 @@ public class DtoConverterUtils {
                 ,userDTO.getUsername()
                 ,false
         );
+    }
+
+    public static SendLocationsDetails convertSelectedLocations(SelectedLocationsDTO selectedLocations) {
+        return new SendLocationsDetails(selectedLocations.getAdminUsername(), null, selectedLocations.getAmountOfPoints(), selectedLocations.getCity(), null);
     }
 }
