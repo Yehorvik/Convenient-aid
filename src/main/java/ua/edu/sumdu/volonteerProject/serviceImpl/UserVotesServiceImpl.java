@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
-import ua.edu.sumdu.volonteerProject.model.ChatLocation;
 import ua.edu.sumdu.volonteerProject.model.UserVote;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
 import ua.edu.sumdu.volonteerProject.repos.ChatLocationRepository;
@@ -115,17 +114,17 @@ public class UserVotesServiceImpl implements UserVotesService {
             throw new NullPointerException("city cant be null!");
         }
         //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
-        return userVotesRepository.getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(date ,city).stream().map(e->{return e.getChatLocation().getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
+        return userVotesRepository.getUserVotesByActiveAndChatLocation_CityName(true ,city).stream().map(e->{return e.getChatLocation().getLocationCoordinates();}).collect(Collectors.toUnmodifiableList());
     }
 
     @Override
     @Transactional
-    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations, Date fromDate) throws IllegalAccessException {
+    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations) throws IllegalAccessException {
         if(amountOfLocations <=0){
             throw new IllegalAccessException("amount of locations cant be negative");
         }
         ua.edu.sumdu.volonteerProject.model.City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
-        List<UserVote> chatLocations = userVotesRepository.getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(fromDate, authorizedCity);
+        List<UserVote> chatLocations = userVotesRepository.getUserVotesByActiveAndChatLocation_CityName(true, authorizedCity);
         final double AREA_KOEF = sqrt(authorizedCity.getArea()/PI)/amountOfLocations*1.5;
         System.out.println(AREA_KOEF);
         List<CoordinatesAndK> coordinatesAndKS= null;

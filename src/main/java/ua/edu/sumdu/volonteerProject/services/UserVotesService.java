@@ -10,6 +10,6 @@ import java.util.List;
 
 public interface UserVotesService {
     public List<LocationCoordinates> getCoordinates(City city, Date date);
-    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations, Date fromDate) throws IllegalAccessException;
+    public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations) throws IllegalAccessException;
     //public List<ChatLocation> findUsersByCity(City city);
 }

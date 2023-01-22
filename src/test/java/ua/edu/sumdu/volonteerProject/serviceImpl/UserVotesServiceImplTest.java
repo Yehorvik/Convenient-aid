@@ -67,7 +67,7 @@ class UserVotesServiceImplTest {
         //System.out.println(userLocationList);
         long time = System.currentTimeMillis();
 // some code
-        System.out.println( userLocationService.getFittedCoordinatesByLocation(sum, 3, new Date(2022, 8, 11 )));
+        System.out.println( userLocationService.getFittedCoordinatesByLocation(sum, 3));
         System.out.println((System.currentTimeMillis() - time)/1000./60);
 
 

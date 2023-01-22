@@ -20,10 +20,13 @@ public class UserVote {
     private long voteId;
 
     @Column(nullable = false, columnDefinition = "date default CURRENT_DATE")
-    Date dateOfAnswer;
+    private Date dateOfAnswer;
+
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean active;
 
     @JoinColumn(referencedColumnName = "user_id", name = "user_id", nullable = false)
     @ManyToOne
-    ChatLocation chatLocation;
+    private ChatLocation chatLocation;
 
 }
