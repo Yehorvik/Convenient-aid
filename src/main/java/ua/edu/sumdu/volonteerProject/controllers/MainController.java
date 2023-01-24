@@ -22,7 +22,9 @@ import java.util.List;
 
 @RestController
 @AllArgsConstructor
-@PreAuthorize(value = "ADMIN")
+//@PreAuthorize("ADMIN")
+@CrossOrigin
+@RequestMapping("/admin")
 public class MainController {
 
     private final UserVotesService userVotesService;
@@ -32,9 +34,9 @@ public class MainController {
     private final CityService cityService;
 
     @GetMapping("/getVotes")
-    public List<LocationCoordinates> getAll(@RequestParam String city, @RequestParam LocalDate localDate){
+    public List<LocationCoordinates> getAll(@RequestParam String city){
         City currentCity= cityService.getCityByName(new CityDTO(city));
-        return userVotesService.getCoordinates(currentCity, Date.valueOf(localDate));
+        return userVotesService.getCoordinates(currentCity);
     }
 
     @GetMapping("/getLocationsByPeriod")

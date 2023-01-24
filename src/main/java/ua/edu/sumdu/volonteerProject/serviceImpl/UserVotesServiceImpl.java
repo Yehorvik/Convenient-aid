@@ -109,7 +109,7 @@ public class UserVotesServiceImpl implements UserVotesService {
     }
 
     @Override
-    public List<LocationCoordinates> getCoordinates(City city, Date date) {
+    public List<LocationCoordinates> getCoordinates(City city) {
         if(city == null){
             throw new NullPointerException("city cant be null!");
         }

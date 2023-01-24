@@ -6,10 +6,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -26,7 +24,7 @@ public class JwtTokenProvider {
         claims.put("username", user.getUsername());
         claims.put("firstname", user.getFirstName());
         claims.put("secondname", user.getSecondName());
-        claims.put("authorities", user.getAuthorities());
+        claims.put("authorities", user.getAuthorities().stream().parallel().map(e->e.getAuthority()).collect(Collectors.toList()));
         return Jwts.builder()
                 .setSubject(userId)
                 .setClaims(claims).setIssuedAt(date)

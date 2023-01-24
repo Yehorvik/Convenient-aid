@@ -21,8 +21,7 @@ import ua.edu.sumdu.volonteerProject.security.CustomUserDetailsService;
 import ua.edu.sumdu.volonteerProject.security.JwtAuthenticationFilter;
 import ua.edu.sumdu.volonteerProject.security.JwtTokenProvider;
 
-import static ua.edu.sumdu.volonteerProject.security.SecurityConstraints.ADMIN_URL;
-import static ua.edu.sumdu.volonteerProject.security.SecurityConstraints.LOGIN_URL;
+import static ua.edu.sumdu.volonteerProject.security.SecurityConstraints.*;
 
 @AllArgsConstructor
 @Configuration
@@ -61,11 +60,11 @@ public class AuthConfig extends WebSecurityConfigurerAdapter {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .mvcMatchers(ADMIN_URL)
+                .mvcMatchers(ADMIN_URL,VOLONTEER_URL)
                 .hasAuthority("ADMIN")
                 .mvcMatchers(LOGIN_URL)
                 .anonymous()
-                .mvcMatchers("/volunteers/**")
+                .mvcMatchers(VOLONTEER_URL)
                 .hasAuthority("VOLUNTEER")
                 .antMatchers("/**")
                 .authenticated()
