@@ -39,7 +39,7 @@ public class MainController {
             return errors;
         }
         City currentCity= cityService.getCityByName(new CityDTO(city));
-        return ResponseEntity.ok( userVotesService.getCoordinates(currentCity, Date.valueOf(localDate)));
+        return ResponseEntity.ok( userVotesService.getCoordinates(currentCity));
     }
 
     @GetMapping("/getLocationsByPeriod")
