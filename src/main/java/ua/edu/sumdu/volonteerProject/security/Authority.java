@@ -22,9 +22,4 @@ public class Authority implements GrantedAuthority {
     inverseJoinColumns = {@JoinColumn(name="user_id", referencedColumnName = "id")})
     private List<JwtUserDetails> userDetails;
 
-
-    @Override
-    public String getAuthority() {
-        return authority;
-    }
 }

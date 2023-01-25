@@ -20,8 +20,9 @@ import java.util.List;
 
 @RestController
 @AllArgsConstructor
-@PreAuthorize(value = "ADMIN")
+//@PreAuthorize("ADMIN")
 @CrossOrigin
+@RequestMapping("/admin")
 public class MainController {
 
     private final MapValidationErrorService mapValidationErrorService;
@@ -41,6 +42,10 @@ public class MainController {
         return ResponseEntity.ok( userVotesService.getCoordinates(currentCity, Date.valueOf(localDate)));
     }
 
+    @GetMapping("/getLocationsByPeriod")
+    public ResponseEntity getLocationsByPeriod(@RequestParam String cityName, @RequestParam LocalDate startDate, @RequestParam LocalDate endDate){
+        return null;
+    }
 
     @PostMapping("/sendLocation")
     public ResponseEntity sendLocations(@RequestBody SelectedLocationsDTO selectedLocations) throws IllegalAccessException, TelegramSendMessageError {
@@ -54,7 +59,7 @@ public class MainController {
     public ResponseEntity<?> getBestFittingPoints(@RequestParam int amountOfPoints, @RequestParam String cityName){
         City city = cityService.getCityByName(new CityDTO(cityName));
         try {
-            List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, amountOfPoints, Date.valueOf(LocalDate.now().minusDays(1)));
+            List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, amountOfPoints);
             return ResponseEntity.ok( locationCoordinatesList);
         } catch (IllegalAccessException e) {
             return new ResponseEntity<String>("something went wrong while we sending your message", HttpStatus.BAD_REQUEST);
