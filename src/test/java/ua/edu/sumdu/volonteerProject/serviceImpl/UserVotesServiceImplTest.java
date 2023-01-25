@@ -43,7 +43,7 @@ class UserVotesServiceImplTest {
         Random random = new Random();
         LocationCoordinates sumy = new LocationCoordinates(50.9216, 34.80029);
         staticUserVoteList = new ArrayList<>();
-        sum = new City("sumy", 95);
+        sum = new City("sumy",new LocationCoordinates(50.9216, 34.80029) ,95);
         for(int i = 0; i < 100000; i++){
             double lat = random.nextGaussian(sumy.getLatitude(), 0.1);
             double lon = random.nextGaussian(sumy.getLongitude(), 0.1);
