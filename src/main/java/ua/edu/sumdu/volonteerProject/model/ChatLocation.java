@@ -17,6 +17,7 @@ public class ChatLocation {
     @JoinColumn(name = "city_name", referencedColumnName = "name")
     private City cityName;
 
+    private boolean hasPollInvitation;
 
     @Embedded
     private LocationCoordinates locationCoordinates;

@@ -1,6 +1,7 @@
 package ua.edu.sumdu.volonteerProject.controllers;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
 import ua.edu.sumdu.volonteerProject.DTO.SelectedLocationsDTO;
 import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
+import ua.edu.sumdu.volonteerProject.errors.WrongAmountException;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 import ua.edu.sumdu.volonteerProject.services.*;
@@ -16,6 +18,7 @@ import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -23,6 +26,7 @@ import java.util.List;
 //@PreAuthorize("ADMIN")
 @CrossOrigin
 @RequestMapping("/admin")
+@Slf4j
 public class MainController {
 
     private final MapValidationErrorService mapValidationErrorService;
@@ -33,11 +37,7 @@ public class MainController {
     private final CityService cityService;
 
     @GetMapping("/getVotes")
-    public ResponseEntity<?> getAll(@RequestParam String city, @RequestParam LocalDate localDate, BindingResult bindingResult){
-        ResponseEntity errors = mapValidationErrorService.mapErrors(bindingResult);
-        if(errors!=null){
-            return errors;
-        }
+    public ResponseEntity<?> getAll(@RequestParam String city){
         City currentCity= cityService.getCityByName(new CityDTO(city));
         return ResponseEntity.ok( userVotesService.getCoordinates(currentCity));
     }
@@ -48,33 +48,33 @@ public class MainController {
     }
 
     @PostMapping("/sendLocation")
-    public ResponseEntity sendLocations(@RequestBody SelectedLocationsDTO selectedLocations) throws IllegalAccessException, TelegramSendMessageError {
-        City city =  cityService.getCityByName(new CityDTO(selectedLocations.getCity()));
+    public ResponseEntity sendLocations(@RequestBody SelectedLocationsDTO selectedLocations, BindingResult bindingResult) throws TelegramSendMessageError {
+        ResponseEntity errors = mapValidationErrorService.mapErrors(bindingResult);
+        if(errors!=null){
+            return errors;
+        }
+
+        City city =  cityService.getCityByName(new CityDTO(selectedLocations.getCityName()));
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
         logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
         return ResponseEntity.ok("locations was successfully sent");
     }
 
     @GetMapping("/getBestPoints")
-    public ResponseEntity<?> getBestFittingPoints(@RequestParam int amountOfPoints, @RequestParam String cityName){
+    public ResponseEntity<?> getBestFittingPoints(@RequestParam int amountOfPoints, @RequestParam String cityName) throws IllegalAccessException {
+        if(amountOfPoints<=0){
+            throw new WrongAmountException("the number of requested points is not positive");
+        }
         City city = cityService.getCityByName(new CityDTO(cityName));
-        try {
             List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, amountOfPoints);
             return ResponseEntity.ok( locationCoordinatesList);
-        } catch (IllegalAccessException e) {
-            return new ResponseEntity<String>("something went wrong while we sending your message", HttpStatus.BAD_REQUEST);
-        }
     }
 
     @GetMapping("/sendMessage")
-    public ResponseEntity<?> sendMessage(@RequestParam String city){
+    public ResponseEntity<?> sendMessage(@RequestParam String city) throws TelegramSendMessageError {
         CityDTO cityDTO = new CityDTO(city);
-        try {
-            telegramBotPushingService.createPoll(cityService.getCityByName(cityDTO));
-        } catch (TelegramSendMessageError e) {
-            e.printStackTrace();
-            return new ResponseEntity<String>("something went wrong while we sending your message", HttpStatus.BAD_REQUEST);
-        }
+        City cityObj = cityService.getCityByName(cityDTO);
+            telegramBotPushingService.createPoll(cityObj);
         return ResponseEntity.ok("your poll was successfully send");
     }
 }

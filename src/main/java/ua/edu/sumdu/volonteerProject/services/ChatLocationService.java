@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface ChatLocationService {
     public List<ChatLocation> getChatsByCity(City city);
+
+    void updateChatInvitationStatusByCity(City city, boolean status);
 }

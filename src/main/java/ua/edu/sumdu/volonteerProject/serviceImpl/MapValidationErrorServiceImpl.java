@@ -23,4 +23,12 @@ public class MapValidationErrorServiceImpl implements MapValidationErrorService 
         }
         return null;
     }
+
+    @Override
+    public ResponseEntity<?> getErrorAsMap(final String ERROR_TYPE, final String ERROR_MSG){
+        Map<String,String> errors = new HashMap<>();
+        errors.put(ERROR_TYPE, ERROR_MSG);
+        return new ResponseEntity<Map<String, String>>(errors, HttpStatus.BAD_REQUEST);
+    }
+
 }

@@ -71,11 +71,12 @@ public class TelegramBot {
     public void sendMessage(List<Long> chat_ids , String message) throws TelegramSendMessageError {
         try {
             for (long a : chat_ids) {
-                webTarget.path("sendMessage")
+                Response response = webTarget.path("sendMessage")
                         .queryParam("chat_id", a)
                         .queryParam("text", message)
                         .request()
                         .get();
+                response.close();
             }
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);

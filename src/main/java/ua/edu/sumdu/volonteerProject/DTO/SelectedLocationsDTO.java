@@ -12,5 +12,5 @@ public class SelectedLocationsDTO {
     private String adminUsername;
     private List<LocationCoordinates> coordinatesList;
     private long amountOfPoints;
-    private String city;
+    private String cityName;
 }

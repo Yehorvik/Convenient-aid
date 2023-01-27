@@ -7,6 +7,7 @@ import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 import ua.edu.sumdu.volonteerProject.model.ChatLocation;
+import ua.edu.sumdu.volonteerProject.model.UserVote;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
 import ua.edu.sumdu.volonteerProject.repos.ChatLocationRepository;
 import ua.edu.sumdu.volonteerProject.repos.UserVotesRepository;
@@ -42,27 +43,33 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     @Transactional
     @Override
     public void pushMessagesToUsers(City city, List<LocationCoordinates> locationCoordinates) throws TelegramSendMessageError {
-        List<ChatLocation> chatLocations =  chatLocationRepository.findByCityName(city);
+        List<UserVote> chatLocations =  userVotesRepository.getUserVotesByActiveAndChatLocation_CityName(true,city);
         Map<Long, LocationCoordinates> chatsAndLocations = new HashMap<>();
         System.out.println(chatLocations);
         System.out.println(locationCoordinates);
         chatLocations.stream().parallel().forEach(e -> {
 
-            chatsAndLocations.put(e.getChatId(), locationCoordinates.stream().min((a, b) -> {
+            chatsAndLocations.put(e.getChatLocation().getChatId(), locationCoordinates.stream().min((a, b) -> {
                 if(a.equals(b)){
                     return 0;
                 }
                 return
-                    (CoordinateUtils.calculateDistance(e.getLocationCoordinates(), a) - CoordinateUtils.calculateDistance(e.getLocationCoordinates(), b))<=0?-1:1;}).orElse(null));
+                    (CoordinateUtils.calculateDistance(e.getChatLocation().getLocationCoordinates(), a) - CoordinateUtils.calculateDistance(e.getChatLocation().getLocationCoordinates(), b))<=0?-1:1;}).orElse(null));
             });
         telegramBot.sendLocations(chatsAndLocations);
+        chatLocationRepository.setHasInvitedToFalseForVotedLocationsByCity(city);
+        userVotesRepository.inactivateUserVoteByCity(city);
     }
 
     @Transactional
     @Override
     public void createPoll(City city) throws TelegramSendMessageError {
-        List<ChatLocation> chatLocations =  chatLocationRepository.findByCityName(city);
-        List<Long> ids = chatLocations.stream().map(e->e.getChatId()).collect(Collectors.toUnmodifiableList());
-        telegramBot.sendMessagesWithInlineBrd(ids,MESSAGE,REPLY_MESSAGE);
+        List<Long> doesNotAnsweredThePrevPollUsers = chatLocationRepository.getChatIdBy(city, true);
+        List<Long> answeredThePrevPollUsers = chatLocationRepository.getChatIdBy(city, false);
+        telegramBot.sendMessagesWithInlineBrd(answeredThePrevPollUsers,MESSAGE,REPLY_MESSAGE);
+        telegramBot.sendMessage(doesNotAnsweredThePrevPollUsers, "You didn`t answer the in the previous poll, the next one has been startred, so you can vote this time, using the previous button!");
+
+        chatLocationRepository.setHasInvitedToFalse(city,true);
+
     }
 }

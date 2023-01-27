@@ -3,6 +3,7 @@ package ua.edu.sumdu.volonteerProject.serviceImpl;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
+import ua.edu.sumdu.volonteerProject.errors.CityNotFoundException;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
 import ua.edu.sumdu.volonteerProject.services.CityService;
@@ -17,7 +18,7 @@ public class CityServiceImpl implements CityService {
 
     @Override
     public ua.edu.sumdu.volonteerProject.model.City getCityByName(CityDTO cityDTO) {
-        return citiesRepo.findById(cityDTO.getName()).orElseThrow(() -> new NullPointerException("cant find the city"));
+        return citiesRepo.findById(cityDTO.getName()).orElseThrow(() -> new CityNotFoundException("cant find the city"));
     }
 
     @Override

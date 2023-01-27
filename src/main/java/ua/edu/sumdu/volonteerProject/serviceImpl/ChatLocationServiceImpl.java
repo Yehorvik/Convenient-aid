@@ -19,4 +19,9 @@ public class ChatLocationServiceImpl implements ChatLocationService {
     public List<ChatLocation> getChatsByCity(City city) {
         return chatLocationRepository.findByCityName(city);
     }
+
+    @Override
+    public void updateChatInvitationStatusByCity(City city, boolean status) {
+        chatLocationRepository.setHasInvitedToFalse(city, status);
+    }
 }

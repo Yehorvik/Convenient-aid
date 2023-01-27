@@ -16,6 +16,6 @@ public interface UserVotesRepository extends JpaRepository<UserVote, UUID>
     public List<UserVote> getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(Date date, City city);
     public List<UserVote> getUserVotesByActiveAndChatLocation_CityName(boolean active, City city);
     @Modifying
-    @Query(value ="update UserVote set active = false where active = true and chatLocation.cityName = ?1")
-    public List<UserVote> inactivateUserVoteByCity(String city);
+    @Query(value ="update UserVote u set u.active = false where u.active = true and u.chatLocation.chatId in (select c.chatId from ChatLocation c where c.cityName = ?1)")
+    public void inactivateUserVoteByCity(City city);
 }
