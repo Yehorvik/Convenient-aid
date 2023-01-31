@@ -25,10 +25,10 @@ public class TestingForLargeAmountUtil {
 
     }
 
-    public void insertRandomSumyData() throws SQLException {
+    public void insertRandomSumyData(int amountOfPoints) throws SQLException {
         Random random = new Random();
         Set<Long> uniChats = new TreeSet<>() ;
-        for(int i = 0; i < 140000; i++) {
+        for(int i = 0; i < amountOfPoints; i++) {
             uniChats.add(5_000_000_0 + random.nextLong(140000));
         }
         LocationCoordinates cityCoordinates = new LocationCoordinates();
@@ -37,13 +37,29 @@ public class TestingForLargeAmountUtil {
         cityCoordinates.setLongitude(34.80029);
         List<Long> chatList = uniChats.stream().toList();
 
-        List<ChatLocation> chatLocations = chatList.stream().map( e -> new ChatLocation(  new City("Sumy",cityCoordinates,90.20),
+        List<ChatLocation> chatLocations = chatList.stream().map( e -> {
+            LocationCoordinates lc = null;
+            if(e.longValue()%3== 0){
+                lc = new LocationCoordinates(
+                        random.nextGaussian(cityCoordinates.getLongitude() + 0.02,0.02),
+                        random.nextGaussian(cityCoordinates.getLatitude() + 0.02,0.02)
+                );
+            }else if(e.longValue()%2 == 0){
+                lc = new LocationCoordinates(
+                        random.nextGaussian(cityCoordinates.getLongitude() -0.02,0.02),
+                        random.nextGaussian(cityCoordinates.getLatitude() -0.02,0.02)
+                );
+            }else
+            {
+                lc =new LocationCoordinates( random.nextGaussian(cityCoordinates.getLongitude(),0.02),
+                        random.nextGaussian(cityCoordinates.getLatitude(),0.02));
+            }
+            return new ChatLocation(
+                    new City("Sumy", cityCoordinates,90.20),
                 true,
-                new LocationCoordinates(
-                        random.nextGaussian(cityCoordinates.getLongitude(),0.004),
-                        random.nextGaussian(cityCoordinates.getLatitude(),0.004)
-                ),
-                e.longValue())).collect(Collectors.toList());
+                lc,
+                e.longValue());
+        }).collect(Collectors.toList());
 
         List<UserVote> v = chatLocations.stream().map(e-> new UserVote(0,null, true, e)).collect(Collectors.toList());
         PreparedStatement p = connection.prepareStatement("insert into chat_location(user_id, latitude, longitude, city_name,has_poll_invitation) values(?, ?,?,?,?)");
@@ -77,7 +93,7 @@ public class TestingForLargeAmountUtil {
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
         TestingForLargeAmountUtil testingForLargeAmountUtil = new TestingForLargeAmountUtil();
         testingForLargeAmountUtil.initDataBase();
-        testingForLargeAmountUtil.insertRandomSumyData();
+        testingForLargeAmountUtil.insertRandomSumyData(Integer.valueOf( args[0]));
         testingForLargeAmountUtil.closeDataBase();
     }
 

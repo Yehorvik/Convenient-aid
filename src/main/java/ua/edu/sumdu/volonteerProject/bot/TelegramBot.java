@@ -24,6 +24,7 @@ import javax.ws.rs.core.Response;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
 
 @Component
 public class TelegramBot {
@@ -86,18 +87,30 @@ public class TelegramBot {
 
     public void sendLocations(Map<Long, LocationCoordinates> usersAndLocations) throws TelegramSendMessageError {
         try {
+            List<Future<Response>> responseList = new ArrayList<>();
             for (Map.Entry<Long, LocationCoordinates> entry : usersAndLocations.entrySet()) {
-                Response response = webTarget.path("sendLocation")
+                responseList.add(webTarget.path("sendLocation")
                         .queryParam("chat_id", entry.getKey())
                         .queryParam("protect_content", true)
                         .queryParam("longitude", entry.getValue().getLongitude())
                         .queryParam("latitude", entry.getValue().getLatitude())
                         .request()
-                        .get()
+                        .async().get())
                         ;
-                response.close();
-            }
 
+
+            }
+            for(Future<Response> responseFuture: responseList) {
+                try {
+                    responseFuture.get().close();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    throw new TelegramSendMessageError("cant send the message", e);
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                    throw new TelegramSendMessageError("cant send the message", e);
+                }
+            };
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);
         }

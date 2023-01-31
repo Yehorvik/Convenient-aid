@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 public class UserVotesServiceImpl implements UserVotesService {
 
     private static final double SOME_REGULAR_CONSTANT_KOEF = 25;
-    private static final double CONSTANT_FOR_EXP = 90000;
+    private static final double CONSTANT_FOR_EXP = 40;
     private static final double LAT_TO_KM = 110.573;
     private static final double LON_TO_KM = 111.320;
 
@@ -104,7 +104,7 @@ public class UserVotesServiceImpl implements UserVotesService {
             list.addAll(
             (List<CoordinatesAndK>)t.get());
         }
-        System.out.println(list);
+        //System.out.println(list);
         return list;
     }
 
@@ -138,8 +138,10 @@ public class UserVotesServiceImpl implements UserVotesService {
                 e.printStackTrace();
             }
             CoordinatesAndK coordinatesAndK = coordinatesAndKS.stream().max((e, b) -> e.k - b.k > 0 ? 1 : -1).orElse(null);
+            System.out.println(coordinatesAndK);
             if(coordinatesAndK != null) {
                 coordinates.add(coordinatesAndK.locationCoordinates);
+
                 int finalCurrentAmount = currentAmount;
                 chatLocations.removeIf(e -> coordinatesAndK.locationCoordinates.equals(e.getChatLocation().getLocationCoordinates()));
                 chatLocations.removeIf(e ->{
@@ -150,6 +152,7 @@ public class UserVotesServiceImpl implements UserVotesService {
             }
         }
 //TODO finish the task management
+       // System.out.println(coordinatesAndKS);
         return coordinates;
     }
 
