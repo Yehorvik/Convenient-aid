@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
 import net.minidev.json.JSONObject;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.jboss.resteasy.client.jaxrs.engines.ApacheHttpClient4Engine;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -15,12 +20,10 @@ import ua.edu.sumdu.volonteerProject.model.telegram.TelegramReplyMarkup;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.client.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.net.http.HttpClient;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +39,12 @@ public class TelegramBot {
 
     @PostConstruct
     void init(){
-        client = ClientBuilder.newClient();//.connectTimeout(3, TimeUnit.SECONDS);
+        PoolingHttpClientConnectionManager poolingHttpClientConnectionManager = new PoolingHttpClientConnectionManager();
+        CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(poolingHttpClientConnectionManager).build();
+        poolingHttpClientConnectionManager.setMaxTotal(500);
+        poolingHttpClientConnectionManager.setDefaultMaxPerRoute(20);
+        ApacheHttpClient4Engine engine = new ApacheHttpClient4Engine();
+        client = ((ResteasyClientBuilder) ClientBuilder.newBuilder()).httpEngine(engine).build();//.connectTimeout(3, TimeUnit.SECONDS);
         webTarget = client.target("https://api.telegram.org/bot{token}")
                 .resolveTemplate("token", this.token);
         System.out.println(token);
@@ -87,6 +95,7 @@ public class TelegramBot {
 
     public void sendLocations(Map<Long, LocationCoordinates> usersAndLocations) throws TelegramSendMessageError {
         try {
+            CountDownLatch countDownLatch = new CountDownLatch(200);
             List<Future<Response>> responseList = new ArrayList<>();
             for (Map.Entry<Long, LocationCoordinates> entry : usersAndLocations.entrySet()) {
                 responseList.add(webTarget.path("sendLocation")
@@ -95,22 +104,38 @@ public class TelegramBot {
                         .queryParam("longitude", entry.getValue().getLongitude())
                         .queryParam("latitude", entry.getValue().getLatitude())
                         .request()
-                        .async().get())
+                        .async().get(
+                                new InvocationCallback<Response>() {
+                                    @Override
+                                    public void completed(Response response) {
+                                        countDownLatch.countDown();
+                                        response.close();
+                                    }
+
+                                    @Override
+                                    public void failed(Throwable throwable) {
+                                        countDownLatch.countDown();
+                                        throwable.printStackTrace();
+                                    }
+                                }
+                        ))
                         ;
 
 
             }
-            for(Future<Response> responseFuture: responseList) {
-                try {
-                    responseFuture.get().close();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                    throw new TelegramSendMessageError("cant send the message", e);
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                    throw new TelegramSendMessageError("cant send the message", e);
-                }
-            };
+            //CountDownLatch countDownLatch = new CountDownLatch(3);
+            //countDownLatch.
+//            for(Future<Response> responseFuture: responseList) {
+//                try {
+//                    responseFuture.get().close();
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                    throw new TelegramSendMessageError("cant send the message", e);
+//                } catch (ExecutionException e) {
+//                    e.printStackTrace();
+//                    throw new TelegramSendMessageError("cant send the message", e);
+//                }
+//            };
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);
         }
