@@ -17,7 +17,12 @@ import ua.edu.sumdu.volonteerProject.services.*;
 import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 
@@ -28,12 +33,11 @@ import java.util.List;
 @RequestMapping("/admin")
 @Slf4j
 public class MainController {
-
     private final MapValidationErrorService mapValidationErrorService;
     private final UserVotesService userVotesService;
     private final TelegramBotPushingService telegramBotPushingService;
     private final LogHistoryService logHistoryService;
-
+    private final LastPollAndSecurityCheckerService pollAndSecurityCheckerService;
     private final CityService cityService;
 
     @GetMapping("/getVotes")
@@ -55,6 +59,10 @@ public class MainController {
         }
 
         City city =  cityService.getCityByName(new CityDTO(selectedLocations.getCityName()));
+        long diff = pollAndSecurityCheckerService.getLastSendMessageExpirationDifferance(city);
+        if(diff<0){
+            return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
+        }
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
         logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
         return ResponseEntity.ok("locations was successfully sent");
@@ -74,7 +82,11 @@ public class MainController {
     public ResponseEntity<?> sendMessage(@RequestParam String city) throws TelegramSendMessageError {
         CityDTO cityDTO = new CityDTO(city);
         City cityObj = cityService.getCityByName(cityDTO);
-            telegramBotPushingService.createPoll(cityObj);
+        long diff = pollAndSecurityCheckerService.getLastPollingExpirationDifferance(cityObj);
+        if(diff<0){
+            return mapValidationErrorService.getErrorAsMap("pollingTimeout", String.valueOf(-diff));
+        }
+        telegramBotPushingService.createPoll(cityObj);
         return ResponseEntity.ok("your poll was successfully send");
     }
 }

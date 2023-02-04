@@ -10,6 +10,7 @@ import ua.edu.sumdu.volonteerProject.model.ChatLocation;
 import ua.edu.sumdu.volonteerProject.model.UserVote;
 import ua.edu.sumdu.volonteerProject.repos.CitiesRepo;
 import ua.edu.sumdu.volonteerProject.repos.ChatLocationRepository;
+import ua.edu.sumdu.volonteerProject.repos.LastPollAndSendCityCheckerRepo;
 import ua.edu.sumdu.volonteerProject.repos.UserVotesRepository;
 import ua.edu.sumdu.volonteerProject.services.TelegramBotPushingService;
 import ua.edu.sumdu.volonteerProject.utils.CoordinateUtils;
@@ -26,7 +27,7 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     private final ChatLocationRepository chatLocationRepository;
     private final CitiesRepo citiesRepo;
     private final UserVotesRepository userVotesRepository;
-
+    private final LastPollAndSendCityCheckerRepo pollAndSendCityCheckerRepo;
     private final String MESSAGE = "Do you want to participate in the next volonteers poll?";
     private final String REPLY_MESSAGE = "YES!";
 
@@ -56,6 +57,7 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
                 return
                     (CoordinateUtils.calculateDistance(e.getChatLocation().getLocationCoordinates(), a) - CoordinateUtils.calculateDistance(e.getChatLocation().getLocationCoordinates(), b))<=0?-1:1;}).orElse(null));
             });
+        pollAndSendCityCheckerRepo.updateSendDateByCity(city.getName());
         telegramBot.sendLocations(chatsAndLocations);
         chatLocationRepository.setHasInvitedToFalseForVotedLocationsByCity(city);
         userVotesRepository.inactivateUserVoteByCity(city);
@@ -66,6 +68,7 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     public void createPoll(City city) throws TelegramSendMessageError {
         List<Long> doesNotAnsweredThePrevPollUsers = chatLocationRepository.getChatIdBy(city, true);
         List<Long> answeredThePrevPollUsers = chatLocationRepository.getChatIdBy(city, false);
+        pollAndSendCityCheckerRepo.updatePollDateByCity(city.getName());
         telegramBot.sendMessagesWithInlineBrd(answeredThePrevPollUsers,MESSAGE,REPLY_MESSAGE);
         telegramBot.sendMessage(doesNotAnsweredThePrevPollUsers, "You didn`t answer the in the previous poll, the next one has been startred, so you can vote this time, using the previous button!");
 
