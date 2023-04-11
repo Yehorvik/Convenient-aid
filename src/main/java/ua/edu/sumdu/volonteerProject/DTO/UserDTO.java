@@ -5,6 +5,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import javax.persistence.Column;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import java.sql.Date;
@@ -27,4 +28,7 @@ public class UserDTO {
 
     @NotBlank(message = "please, repeat your password")
     private String repeatPassword;
+
+    @Column
+    private String cityName;
 }

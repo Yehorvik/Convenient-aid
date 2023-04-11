@@ -166,7 +166,9 @@ public class TelegramBot {
                         })
                         ;
             }
-            countDownLatch.await();
+            if(!countDownLatch.await(chat_ids.size()/30+4,TimeUnit.SECONDS)){
+                throw new TimeoutException();
+            }
             return failed;
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);

@@ -1,7 +1,10 @@
 package ua.edu.sumdu.volonteerProject.repos;
 
 import lombok.AllArgsConstructor;
+import org.hibernate.annotations.NamedNativeQuery;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import ua.edu.sumdu.volonteerProject.security.JwtUserDetails;
 
 import javax.persistence.EntityManager;

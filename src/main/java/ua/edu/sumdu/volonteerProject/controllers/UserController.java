@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.spi.touri.MappedBy;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,10 +13,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
 import ua.edu.sumdu.volonteerProject.DTO.UserDTO;
 import ua.edu.sumdu.volonteerProject.errors.UsernameAlreadyExistException;
 import ua.edu.sumdu.volonteerProject.payload.JwtLoginSuccessResponse;
@@ -43,6 +42,7 @@ public class UserController {
 
     private final JwtTokenProvider tokenProvider;
 
+    private final DtoConverterUtils dtoConverterUtils;
     private final AuthenticationManager authenticationManager;
 
     private final MapValidationErrorService validationErrorService;
@@ -57,11 +57,13 @@ public class UserController {
         if(userDetailsManager.userExists(userDTO.getUsername())){
             throw new UsernameAlreadyExistException("username " + userDTO.getUsername()+ " is already exist");
         }
-        JwtUserDetails jwtUserDetails = DtoConverterUtils.convertUserDetails(userDTO);
+        JwtUserDetails jwtUserDetails = dtoConverterUtils.convertUserDetails(userDTO);
         userDetailsManager.createUser(jwtUserDetails);
         return ResponseEntity.ok("user successfully created");
 
     }
+
+
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, BindingResult bindingResult){

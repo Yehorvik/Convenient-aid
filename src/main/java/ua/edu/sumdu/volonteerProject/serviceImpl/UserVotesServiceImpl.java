@@ -118,6 +118,15 @@ public class UserVotesServiceImpl implements UserVotesService {
     }
 
     @Override
+    public Long getCountByCity(City city) {
+        if(city == null){
+            throw new NullPointerException("city cant be null!");
+        }
+        //citiesRepo.findById(city.getName()).orElseThrow(() -> {return new NullPointerException("city does not exist!");});
+        return userVotesRepository.countUserVotesByActiveAndChatLocation_CityName(true, city);
+    }
+
+    @Override
     @Transactional
     public List<LocationCoordinates> getFittedCoordinatesByLocation(City city, int amountOfLocations) throws IllegalAccessException {
         if(amountOfLocations <=0){

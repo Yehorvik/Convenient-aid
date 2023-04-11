@@ -25,6 +25,11 @@ public class JwtTokenProvider {
         claims.put("firstname", user.getFirstName());
         claims.put("secondname", user.getSecondName());
         claims.put("authorities", user.getAuthorities().stream().parallel().map(e->e.getAuthority()).collect(Collectors.toList()));
+        if(user.getCity() == null){
+            claims.put("city", null);
+        }else{
+            claims.put("city", user.getCity().getName());
+        }
         return Jwts.builder()
                 .setSubject(userId)
                 .setClaims(claims).setIssuedAt(date)

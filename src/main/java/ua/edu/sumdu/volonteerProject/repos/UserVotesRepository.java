@@ -14,6 +14,8 @@ import java.util.UUID;
 public interface UserVotesRepository extends JpaRepository<UserVote, UUID>
 {
     public List<UserVote> getUserVotesByDateOfAnswerGreaterThanAndChatLocation_CityName(Date date, City city);
+
+    public Long countUserVotesByActiveAndChatLocation_CityName(boolean active, City city);
     public List<UserVote> getUserVotesByActiveAndChatLocation_CityName(boolean active, City city);
     @Modifying
     @Query(value ="update UserVote u set u.active = false where u.active = true and u.chatLocation.chatId in (select c.chatId from ChatLocation c where c.cityName = ?1)")

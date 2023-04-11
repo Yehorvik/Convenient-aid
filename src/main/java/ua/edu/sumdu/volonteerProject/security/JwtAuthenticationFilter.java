@@ -3,6 +3,7 @@ package ua.edu.sumdu.volonteerProject.security;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
@@ -46,8 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }catch (Exception exception){
             log.error("could not set user authentication in security context while filtering");
+            exception.printStackTrace();
         }
-        filterChain.doFilter(request,response);
+        try {
+            filterChain.doFilter(request, response);
+        }catch (BadCredentialsException e){
+            log.error("Bad creds of user");
+        }
     }
 
     private String getJwtFromRequest(HttpServletRequest request){

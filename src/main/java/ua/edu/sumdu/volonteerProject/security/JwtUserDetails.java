@@ -7,12 +7,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
+import ua.edu.sumdu.volonteerProject.model.City;
 
 import javax.persistence.*;
 import javax.validation.constraints.Email;
 import java.sql.Date;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -21,9 +23,16 @@ import java.util.UUID;
 @Data
 public class JwtUserDetails implements UserDetails {
 
-    @ManyToMany(mappedBy = "userDetails", fetch = FetchType.EAGER)
-    private List<Authority> authorityList;
 
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "User_Authorities",
+            inverseJoinColumns = {@JoinColumn(name="authority_id", referencedColumnName = "id")},
+            joinColumns = {@JoinColumn(name="user_id", referencedColumnName = "id")})
+    private Set<Authority> authorityList;
+
+    @ManyToOne
+    @JoinColumn(name = "city_name", referencedColumnName = "name")
+    private City city;
     @Column(nullable = false)
     private String password;
 
@@ -48,9 +57,12 @@ public class JwtUserDetails implements UserDetails {
 
     private boolean isBlocked;
 
+    public void addAuthority(Authority authority){
+        this.authorityList.add(authority);
+    }
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
+    public Collection< ? extends GrantedAuthority> getAuthorities() {
         return authorityList;
     }
 

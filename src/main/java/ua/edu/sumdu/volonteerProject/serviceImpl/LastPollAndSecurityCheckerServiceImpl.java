@@ -14,7 +14,7 @@ import java.time.temporal.ChronoUnit;
 
 @Service
 @AllArgsConstructor
-public class lastPollAndSecurityCheckerServiceImpl implements LastPollAndSecurityCheckerService {
+public class LastPollAndSecurityCheckerServiceImpl implements LastPollAndSecurityCheckerService {
     private final LastPollAndSendCityCheckerRepo pollAndSendCityCheckerRepo;
 
     @Override
