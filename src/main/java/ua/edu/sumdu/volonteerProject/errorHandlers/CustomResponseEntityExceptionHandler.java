@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 import ua.edu.sumdu.volonteerProject.errors.*;
+import ua.edu.sumdu.volonteerProject.security.Authority;
 import ua.edu.sumdu.volonteerProject.services.MapValidationErrorService;
 
 import java.util.HashMap;
@@ -30,6 +31,11 @@ public class CustomResponseEntityExceptionHandler extends ResponseEntityExceptio
     private final String TELEGRAM_ERROR = "telegramError";
     private final String TELEGRAM_ERROR_MESSAGE = "something went wrong while we sending your message";
 
+    private final String USERNAME_NOT_FOUND = "usernameNotFoundError";
+
+    private final String AUTHORITY_NOT_FOUND = "authorityNotFoundError";
+    private final String AUTHORITY_NOT_FOUND_MESSAGE = "cant find a given authority to add it!";
+    private final String USERNAME_NOT_FOUND_MESSAGE = "cant find the user with a given email";
     private final MapValidationErrorService mapValidationErrorService;
 
     @ExceptionHandler(UsernameAlreadyExistException.class)
@@ -37,6 +43,17 @@ public class CustomResponseEntityExceptionHandler extends ResponseEntityExceptio
         UsernameAlreadyExist exept = new UsernameAlreadyExist(ex.getMessage());
         log.warn(ex.getMessage());
         return new ResponseEntity<>(exept, HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public final ResponseEntity<Object> handleUsernameNotFoundException(UsernameAlreadyExistException ex, WebRequest request){
+        log.warn(ex.getMessage());
+        return (ResponseEntity<Object>) mapValidationErrorService.getErrorAsMap(USERNAME_NOT_FOUND, USERNAME_NOT_FOUND_MESSAGE);
+    }
+
+    @ExceptionHandler(AuthorityNotFoundException.class)
+    public final ResponseEntity<Object> handleAuthorityNotFoundException(AuthorityNotFoundException ex, WebRequest request){
+        log.warn(ex.getMessage());
+        return (ResponseEntity<Object>) mapValidationErrorService.getErrorAsMap(AUTHORITY_NOT_FOUND, AUTHORITY_NOT_FOUND_MESSAGE);
     }
 
     @ExceptionHandler(CityNotFoundException.class)

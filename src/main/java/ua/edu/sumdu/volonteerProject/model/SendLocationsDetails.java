@@ -9,6 +9,7 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.sql.Date;
+import java.sql.Timestamp;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -20,6 +21,8 @@ public class SendLocationsDetails {
     private Date createdAt;
     private long amountOfPoints;
     private String city;
+    private Timestamp aprxDateOfDelivering;
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

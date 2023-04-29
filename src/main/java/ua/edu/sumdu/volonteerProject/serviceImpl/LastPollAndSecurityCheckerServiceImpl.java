@@ -17,14 +17,21 @@ import java.time.temporal.ChronoUnit;
 public class LastPollAndSecurityCheckerServiceImpl implements LastPollAndSecurityCheckerService {
     private final LastPollAndSendCityCheckerRepo pollAndSendCityCheckerRepo;
 
-    @Override
-    public long getLastPollingExpirationDifferance(City city) {
-        LastPollAndSendCityChecker lastPollingDateCh = pollAndSendCityCheckerRepo.findLastPollAndSendCityCheckerByCity_Name(city.getName());
-        if(lastPollingDateCh==null){
+
+    private boolean isLastPollingDateCheckNull(LastPollAndSendCityChecker lastPollAndSendCityChecker, City city){
+        if(lastPollAndSendCityChecker==null){
             pollAndSendCityCheckerRepo.saveAndFlush(new LastPollAndSendCityChecker(city.getName() ,
                     city,
                     Timestamp.from(Instant.now().atZone(ZoneOffset.UTC).minus(1,ChronoUnit.DAYS).toInstant()),
                     Timestamp.from(Instant.now().atZone(ZoneOffset.UTC).minus(1,ChronoUnit.DAYS).toInstant())));
+            return true;
+        }
+        return false;
+    }
+    @Override
+    public long getLastPollingExpirationDifferance(City city) {
+        LastPollAndSendCityChecker lastPollingDateCh = pollAndSendCityCheckerRepo.findLastPollAndSendCityCheckerByCity_Name(city.getName());
+        if(isLastPollingDateCheckNull(lastPollingDateCh,city)) {
             return 10;
         }
         Timestamp lastPollingDate = lastPollingDateCh.getDateOfLastPolling();
@@ -37,8 +44,7 @@ public class LastPollAndSecurityCheckerServiceImpl implements LastPollAndSecurit
     @Override
     public long getLastSendMessageExpirationDifferance(City city) {
         LastPollAndSendCityChecker lastPollingDateCh = pollAndSendCityCheckerRepo.findLastPollAndSendCityCheckerByCity_Name(city.getName());
-        if(lastPollingDateCh==null){
-            pollAndSendCityCheckerRepo.save(new LastPollAndSendCityChecker(city.getName() ,city, null, null));
+        if(isLastPollingDateCheckNull(lastPollingDateCh,city)) {
             return 10;
         }
         Timestamp lastSendMessageDate = lastPollingDateCh.getDateOfLastSendingLocation();

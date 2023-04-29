@@ -1,11 +1,8 @@
 package ua.edu.sumdu.volonteerProject.services;
 
-import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
-import ua.edu.sumdu.volonteerProject.model.ChatLocation;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
 
-import java.sql.Date;
 import java.util.List;
 
 public interface UserVotesService {

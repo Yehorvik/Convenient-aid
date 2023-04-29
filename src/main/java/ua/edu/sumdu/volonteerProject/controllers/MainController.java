@@ -3,12 +3,10 @@ package ua.edu.sumdu.volonteerProject.controllers;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
+import ua.edu.sumdu.volonteerProject.DTO.CityName;
 import ua.edu.sumdu.volonteerProject.DTO.SelectedLocationsDTO;
 import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
 import ua.edu.sumdu.volonteerProject.errors.WrongAmountException;
@@ -19,15 +17,7 @@ import ua.edu.sumdu.volonteerProject.security.JwtUserDetails;
 import ua.edu.sumdu.volonteerProject.services.*;
 import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 
-import javax.validation.Valid;
-import java.sql.Date;
-import java.sql.Timestamp;
-import java.time.Clock;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -43,17 +33,17 @@ public class MainController {
     private final LogHistoryService logHistoryService;
     private final LastPollAndSecurityCheckerService pollAndSecurityCheckerService;
     private final CityService cityService;
-
+    private final DeliveryTimerService deliveryTimerService;
     private final CustomUserDetailsService userDetailsService;
 
     @GetMapping("/getVotes")
     public ResponseEntity<?> getAll(@RequestParam String city){
-        City currentCity= cityService.getCityByName(new CityDTO(city));
+        City currentCity= cityService.getCityByName(new CityName(city));
         return ResponseEntity.ok( userVotesService.getCoordinates(currentCity));
     }
     @GetMapping("/getVotesCount")
     public ResponseEntity<?> getVoteCount(@RequestParam String city){
-        City currentCity= cityService.getCityByName(new CityDTO(city));
+        City currentCity= cityService.getCityByName(new CityName(city));
         return ResponseEntity.ok( userVotesService.getCountByCity(currentCity));
     }
     @GetMapping("/getLocationsByPeriod")
@@ -63,14 +53,14 @@ public class MainController {
 
     @GetMapping("/getCity")
     public ResponseEntity getCity(@RequestParam String city){
-        City city1 =  cityService.getCityByName(new CityDTO(city));
+        City city1 =  cityService.getCityByName(new CityName(city));
         return ResponseEntity.ok(city1);
     }
     @PatchMapping("/resetCity")
     public ResponseEntity updateTheCity(@RequestBody ObjectNode objectNode){
         String city = objectNode.get("city").asText();
         String username = objectNode.get("username").asText();
-        City selectedCity = cityService.getCityByName(new CityDTO( city));
+        City selectedCity = cityService.getCityByName(new CityName( city));
         JwtUserDetails userDetails = (JwtUserDetails) userDetailsService.loadUserByUsername(username);
         userDetails.setCity(selectedCity);
         userDetailsService.updateUser(userDetails);
@@ -83,7 +73,7 @@ public class MainController {
             return errors;
         }
 
-        City city =  cityService.getCityByName(new CityDTO(selectedLocations.getCityName()));
+        City city =  cityService.getCityByName(new CityName(selectedLocations.getCityName()));
         long diff = pollAndSecurityCheckerService.getLastSendMessageExpirationDifferance(city);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE
@@ -91,6 +81,9 @@ public class MainController {
         }
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
         logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
+        log.info(selectedLocations.toString());
+        log.info(city.toString());
+        deliveryTimerService.updateNextTimeDelivery(city, selectedLocations.getTimeOfDelivering());
         return ResponseEntity.ok("locations was successfully sent");
     }
 
@@ -99,15 +92,15 @@ public class MainController {
         if(amountOfPoints<=0){
             throw new WrongAmountException("the number of requested points is not positive");
         }
-        City city = cityService.getCityByName(new CityDTO(cityName));
+        City city = cityService.getCityByName(new CityName(cityName));
             List<LocationCoordinates> locationCoordinatesList = userVotesService.getFittedCoordinatesByLocation(city, amountOfPoints);
             return ResponseEntity.ok( locationCoordinatesList);
     }
 
     @GetMapping("/sendMessage")
     public ResponseEntity<?> sendMessage(@RequestParam String city) throws TelegramSendMessageError {
-        CityDTO cityDTO = new CityDTO(city);
-        City cityObj = cityService.getCityByName(cityDTO);
+        CityName cityName = new CityName(city);
+        City cityObj = cityService.getCityByName(cityName);
         long diff = pollAndSecurityCheckerService.getLastPollingExpirationDifferance(cityObj);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE

@@ -1,8 +1,8 @@
 package ua.edu.sumdu.volonteerProject.security;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import lombok.*;
+import net.minidev.json.annotate.JsonIgnore;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,6 +21,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@EqualsAndHashCode(exclude="authorityList")
+@ToString(exclude = "authorityList")
 public class JwtUserDetails implements UserDetails {
 
 
@@ -28,6 +30,7 @@ public class JwtUserDetails implements UserDetails {
     @JoinTable(name = "User_Authorities",
             inverseJoinColumns = {@JoinColumn(name="authority_id", referencedColumnName = "id")},
             joinColumns = {@JoinColumn(name="user_id", referencedColumnName = "id")})
+    @JsonManagedReference
     private Set<Authority> authorityList;
 
     @ManyToOne
@@ -59,6 +62,10 @@ public class JwtUserDetails implements UserDetails {
 
     public void addAuthority(Authority authority){
         this.authorityList.add(authority);
+    }
+
+    public void deleteAuthority(Authority authority){
+        this.authorityList.remove(authority);
     }
 
     @Override

@@ -15,5 +15,6 @@ public interface JwtUserDetailsRepository extends JpaRepository<JwtUserDetails, 
 
     public void deleteByUsername(String username);
 
+    public JwtUserDetails findByUsername(String username);
     public boolean existsJwtUserDetailsByUsername(String username);
 }

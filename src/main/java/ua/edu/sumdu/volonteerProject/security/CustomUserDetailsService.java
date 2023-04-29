@@ -2,6 +2,8 @@ package ua.edu.sumdu.volonteerProject.security;
 
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -10,6 +12,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Service;
+import ua.edu.sumdu.volonteerProject.errors.AuthorityNotFoundException;
 import ua.edu.sumdu.volonteerProject.repos.AuthorityRepository;
 import ua.edu.sumdu.volonteerProject.repos.JwtUserDetailsRepository;
 
@@ -30,6 +33,20 @@ public class CustomUserDetailsService implements UserDetailsManager {
 
     public JwtUserDetails loadUserByUUID(UUID uuid){
         return userDetailsRepository.findById(uuid).orElseThrow(() -> new UsernameNotFoundException("User not found"));
+    }
+
+    public JwtUserDetails loadUserByEmail(String email){
+        return userDetailsRepository.findByUsername(email);
+    }
+
+    //blocks user if there is a true in the isBlocked parameter
+    public void setUserBlocked(String email, boolean isBlocked){
+        JwtUserDetails jwtUserDetails = loadUserByEmail(email);
+        if(jwtUserDetails==null){
+            throw new UsernameNotFoundException("Cant find a user with a given email " + email);
+        }
+        jwtUserDetails.setBlocked(isBlocked);
+        userDetailsRepository.save(jwtUserDetails);
     }
 
     @Transactional
@@ -54,10 +71,38 @@ public class CustomUserDetailsService implements UserDetailsManager {
         userDetailsRepository.save((JwtUserDetails) user);
     }
 
-    public void updateUserToVolunteer(UserDetails user){
-        Authority authority = authorityRepository.findAuthorityByAuthority(VOLUNTEER);
-        ((JwtUserDetails)user).addAuthority(authority);
-        userDetailsRepository.save((JwtUserDetails) user);
+    public void addUserNewRoleByEmail(String email, String authorityName) throws AuthorityNotFoundException {
+        JwtUserDetails jwtUserDetails = loadUserByEmail(email);
+        if(jwtUserDetails==null){
+            throw new UsernameNotFoundException("Cant find a user with a given email " + email);
+        }
+        Authority authority = authorityRepository.findAuthorityByAuthority(authorityName);
+        if(authority==null){
+            throw new AuthorityNotFoundException("Cant find an authority");
+        }
+        jwtUserDetails.addAuthority(authority);
+        userDetailsRepository.save(jwtUserDetails);
+    }
+    public void deleteUserRoleByEmail(String email, String authorityName) throws AuthorityNotFoundException {
+        JwtUserDetails jwtUserDetails = loadUserByEmail(email);
+        if(jwtUserDetails==null){
+            throw new UsernameNotFoundException("Cant find a user with a given email " + email);
+        }
+        Authority authority = authorityRepository.findAuthorityByAuthority(authorityName);
+        if(authority==null){
+            throw new AuthorityNotFoundException("Cant find an authority");
+        }
+        jwtUserDetails.deleteAuthority(authority);
+        userDetailsRepository.save(jwtUserDetails);
+    }
+
+    public long getCountOfUsers(){
+        return userDetailsRepository.count();
+    }
+
+    public List<JwtUserDetails> getAllUsersByPage(int page){
+        Pageable page1 = PageRequest.of(page, 20);
+        return userDetailsRepository.findAll(page1).getContent();
     }
 
     @Override

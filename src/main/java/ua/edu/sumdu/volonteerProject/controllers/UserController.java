@@ -2,19 +2,14 @@ package ua.edu.sumdu.volonteerProject.controllers;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.jboss.resteasy.spi.touri.MappedBy;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-import ua.edu.sumdu.volonteerProject.DTO.CityDTO;
 import ua.edu.sumdu.volonteerProject.DTO.UserDTO;
 import ua.edu.sumdu.volonteerProject.errors.UsernameAlreadyExistException;
 import ua.edu.sumdu.volonteerProject.payload.JwtLoginSuccessResponse;
@@ -27,7 +22,6 @@ import ua.edu.sumdu.volonteerProject.services.MapValidationErrorService;
 import ua.edu.sumdu.volonteerProject.utils.DtoConverterUtils;
 import ua.edu.sumdu.volonteerProject.validatior.UserValidator;
 
-import javax.persistence.Version;
 import javax.validation.Valid;
 
 @Controller
