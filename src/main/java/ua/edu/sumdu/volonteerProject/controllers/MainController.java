@@ -3,6 +3,8 @@ package ua.edu.sumdu.volonteerProject.controllers;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +30,8 @@ import java.util.List;
 @Slf4j
 public class MainController {
     private final MapValidationErrorService mapValidationErrorService;
-    private final UserVotesService userVotesService;
+
+    @Qualifier("kmeansImplementationUserVotesService") private final UserVotesService userVotesService;
     private final TelegramBotPushingService telegramBotPushingService;
     private final LogHistoryService logHistoryService;
     private final LastPollAndSecurityCheckerService pollAndSecurityCheckerService;
@@ -77,7 +80,7 @@ public class MainController {
         long diff = pollAndSecurityCheckerService.getLastSendMessageExpirationDifferance(city);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE
-            return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
+            //return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
         }
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
         logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
@@ -104,7 +107,7 @@ public class MainController {
         long diff = pollAndSecurityCheckerService.getLastPollingExpirationDifferance(cityObj);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE
-            return mapValidationErrorService.getErrorAsMap("pollingTimeout", String.valueOf(-diff));
+            //return mapValidationErrorService.getErrorAsMap("pollingTimeout", String.valueOf(-diff));
         }
         telegramBotPushingService.createPoll(cityObj);
         return ResponseEntity.ok("your poll was successfully send");

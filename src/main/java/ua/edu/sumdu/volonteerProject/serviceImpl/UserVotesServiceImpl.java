@@ -2,6 +2,7 @@ package ua.edu.sumdu.volonteerProject.serviceImpl;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.model.City;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
@@ -22,7 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
-@Service
+@Service( "customUserVotesService")
 @AllArgsConstructor
 @Slf4j
 public class UserVotesServiceImpl implements UserVotesService {

@@ -24,7 +24,8 @@ public class DeliveryTimerServiceImpl implements DeliveryTimerService {
 
     @Override
     public void updateNextTimeDelivery(City city, Timestamp nextDeliveryTime) {
-        TimeOfAid time = new TimeOfAid(city.getName(),city,nextDeliveryTime);
+        TimeOfAid time = timeOfAidRepository.findById(city.getName()).orElse(new TimeOfAid(city.getName(),city,nextDeliveryTime));
+        time.setTime(nextDeliveryTime);
         log.info("the next time delivery should be saved with next params: " + time.toString());
         timeOfAidRepository.save(time);
     }

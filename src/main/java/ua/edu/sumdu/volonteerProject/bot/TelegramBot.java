@@ -80,7 +80,7 @@ public class TelegramBot {
                 ObjectMapper objectMapper =new JsonMapper();
                 String returnString = objectMapper.writeValueAsString(messageEntity);
                 //System.out.println(returnString);
-                webTarget.path("sendMessage")
+                Future t = webTarget.path("sendMessage")
                         //.queryParam("chat_id", a)
                         //.queryParam("text", message)
                         //.queryParam("reply_markup", "{InlineKeyboardButton:{text:"+replyText+"}}")
@@ -92,7 +92,7 @@ public class TelegramBot {
                                 countDownLatch.countDown();
                                 if(response.getStatus() >=400){
                                     failed.put(a, false);
-                                    log.info(String.valueOf(response.getStatus()));
+                                    log.info(String.valueOf(response.getStatus() + " count down latch " + countDownLatch.getCount() + " "));
                                     response.close();
                                     throw new RuntimeException();
                                 }
@@ -115,8 +115,16 @@ public class TelegramBot {
                             }
                         })
                 ;
+                try {
+                    t.get(2, TimeUnit.SECONDS);
+                }catch (InterruptedException | ExecutionException | TimeoutException e){
+                    countDownLatch.countDown();
+                    log.error("didnt send message because of timeout");
+                }
             }
-            countDownLatch.await();
+            if(!countDownLatch.await(chat_ids.size()/30+4,TimeUnit.SECONDS)){
+                throw new TimeoutException();
+            }
             return failed;
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);

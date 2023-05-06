@@ -67,7 +67,7 @@ public class AuthConfig extends WebSecurityConfigurerAdapter {
                 .mvcMatchers(LOGIN_URL)
                 .anonymous()
                 .mvcMatchers("/**")
-                .authenticated()
+                .permitAll()
                 .and()
                 .exceptionHandling()
                 .authenticationEntryPoint(jwtAuthenticationEntryPoint)
