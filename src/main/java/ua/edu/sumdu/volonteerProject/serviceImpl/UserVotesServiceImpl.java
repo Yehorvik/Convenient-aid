@@ -91,10 +91,7 @@ public class UserVotesServiceImpl implements UserVotesService {
 
     private List<CoordinatesAndK> computeKoefs(List<UserVote> chatLocations, ua.edu.sumdu.volonteerProject.model.City city, int amount) throws ExecutionException, InterruptedException {
         List<CompletableFuture> completableFutures = new ArrayList<>();
-        /*for(int i = 1 ; i<= CORES && userLocations.size()>CORES; i++){
-            int finalI = i;
-        }
-        */
+
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, 0, chatLocations.size() / 4)));
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, chatLocations.size() / 4, chatLocations.size() / 2)));
             completableFutures.add(CompletableFuture.supplyAsync(() -> this.computeKoefsMT(chatLocations, city, amount, chatLocations.size() / 2, (chatLocations.size() * 3) / 4)));
@@ -105,7 +102,6 @@ public class UserVotesServiceImpl implements UserVotesService {
             list.addAll(
             (List<CoordinatesAndK>)t.get());
         }
-        //System.out.println(list);
         return list;
     }
 

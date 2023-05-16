@@ -29,6 +29,8 @@ public class CustomUserDetailsService implements UserDetailsManager {
     private final String VOLUNTEER = "VOLUNTEER";
     private final String USER = "USER";
 
+    private final int USERS_PER_PAGE = 20;
+
     private final PasswordEncoder bCryptPasswordEncoder;
 
     public JwtUserDetails loadUserByUUID(UUID uuid){
@@ -101,7 +103,7 @@ public class CustomUserDetailsService implements UserDetailsManager {
     }
 
     public List<JwtUserDetails> getAllUsersByPage(int page){
-        Pageable page1 = PageRequest.of(page, 20);
+        Pageable page1 = PageRequest.of(page, USERS_PER_PAGE);
         return userDetailsRepository.findAll(page1).getContent();
     }
 

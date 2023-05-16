@@ -1,62 +1,44 @@
 package ua.edu.sumdu.volonteerProject.clustering;
 
 import lombok.extern.slf4j.Slf4j;
+import net.bytebuddy.implementation.bytecode.Throw;
 import ua.edu.sumdu.volonteerProject.model.LocationCoordinates;
+import ua.edu.sumdu.volonteerProject.utils.CoordinateUtils;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import static java.lang.Math.sqrt;
 import static ua.edu.sumdu.volonteerProject.utils.CoordinateUtils.haversineDistance;
 
 @Slf4j
 public class ClusterService {
-
+    //taken and adopted from https://github.com/spember/geo-cluster/blob/master/src/main/groovy/pember/kmeans/geo/ClusterService.groovy.
 
     // radius of the earth (approx), in meters
     public static final double R = 6372.8 * 1000;
 
-    /**
-     * Uses the KMeans algorithm to generate k clusters from the set of {@link LocationCoordinates}s. Will initialize
-     * with a random set of k {@ Cluster}s
-     *
-     * @param points a List of {@link LocationCoordinates}s
-     * @param k
-     * @return
-     */
     public static List<Cluster> cluster(List<LocationCoordinates> points, int k) {
-        return cluster(points, k, buildRandomInitialClusters(points, k));
+        return cluster(points, k, buildRandomInitialClustersPlusPlusEnhancement(points, k));
     }
 
-    /**
-     * Uses the KMeans algorithm to generate k clusters from the set of points using a predefined starting set of
-     * {@link Cluster}
-     *
-     * @param points a List of {@link LocationCoordinates}
-     * @param k
-     * @param clusters
-     * @return
-     */
     public static List<Cluster> cluster(List<LocationCoordinates> points, int k, List<Cluster> clusters) {
         // adapted from http://datasciencelab.wordpress.com/2013/12/12/clustering-with-k-means-in-python/
-        // Uses KMeans to converge the clusters on the points
-        // Kmeans is an iterative, two step apporach:
-        // 1. Assign each point to the closest centroid
-        // 2. Recalculate each centroid to be the center of its assigned points
-        // The algorithm is initialized with k random Centroids.
-        // create empty old clusters
         List<Cluster> oldClusters = new ArrayList<>();
         for (Cluster e:
              clusters) {
             oldClusters.add(new Cluster(-180, -90));
         }
+        log.info("clusters" + clusters.toString());
+        log.info("old clusters " + oldClusters.toString());
         int i = 0;
         while (!hasConverged(oldClusters, clusters)) {
-            log.debug("On iteration " + i);
             i++;
-            // grr... cloning in java / groovy is a bit tricky when it comes to lists
-            // they're copied by reference, so in order for the converged
             oldClusters = clusters.stream().map(e-> {
                 try {
                     return (Cluster)e.clone();
@@ -65,50 +47,44 @@ public class ClusterService {
                 }
             }).collect(Collectors.toList());
             clusters = assignPointsToClusters(points, clusters);
-            log.info("On iteration " + i + " clusters " + clusters.toString());
             clusters = adjustClusterCenters(clusters);
-            log.info("On iteration " + i + " clusters " + clusters.toString());
-//            try {
-//                Thread.sleep(1000);
-//            } catch (InterruptedException e) {
-//                throw new RuntimeException(e);
-//            }
         }
         log.info("On iteration " + i + " result clusters: " + clusters.toString());
         return clusters;
     }
 
-    // support methods for clustering
-
-    /**
-     * Calculates the approximate distance between two geographic points on the earth. The earth is not a globe / sphere;
-     * it is a very rough, slightly amorphous ellipsoid. We use the haversine formula in order to calculate an approximate distance
-     *
-     * @param lat1
-     * @param lon1
-     * @param lat2
-     * @param lon2
-     * @return
-     */
-
-    /**
-     * Used to generate some random initial {@link Cluster}s
-     *
-     * @param points
-     * @param k
-     * @return
-     */
-    protected static List<Cluster> buildRandomInitialClusters(List<LocationCoordinates> points, int k) {
-        // shuffle the points randomly, then use the first k as clusters
+    //kmeans++ modification
+    protected static List<Cluster> buildRandomInitialClustersPlusPlusEnhancement(List<LocationCoordinates> points, int k){
+        if(points == null || points.size() == 0){
+            throw new NullPointerException();
+        }
         Collections.shuffle( points);
         List<Cluster> clusters = new ArrayList<>();
-        for(int i = 0 ; i<k; i++) {
-            clusters.add(new Cluster( points.get(i).getLongitude(), points.get(i).getLatitude()));
+        clusters.add(new Cluster( points.get(0).getLongitude(), points.get(0).getLatitude()));
+        Random random = new Random();
+        List<Double> d2 = new ArrayList<>();
+        while (clusters.size() < k){
+              d2 = points.stream().map(e-> clusters.stream().map(cluster -> {
+                double dst = CoordinateUtils.haversineDistance(e,cluster);
+                return dst * dst;} )
+                     .min(Double::compareTo).
+                     get()).
+                     collect(Collectors.toList());
+              double sum =(Double) d2.stream().mapToDouble(Double::doubleValue).sum();
+            List<Double> d2Probs = d2.stream().map(e->e / sum).collect(Collectors.toList());
+            List<Double> d2CumProbs = new ArrayList();
+            d2CumProbs.add(d2Probs.get(0));
+            for (int i = 1; i<d2Probs.size(); i++) {
+                d2CumProbs.add(d2Probs.get(i)+d2CumProbs.get(d2CumProbs.size()-1));
+            }
+            Random d2Random = new Random();
+            double dval = d2Random.nextDouble();
+            int index = IntStream.range(0,d2CumProbs.size()).filter(i -> dval<=d2CumProbs.get(i).doubleValue()).findFirst().getAsInt();
+            clusters.add(new Cluster(points.get(index).getLongitude(), points.get(index).getLatitude()));
         }
-        // reshuffle to avoid putting the points into the cluster they generated?
-        Collections.shuffle(points);
+        Collections.shuffle( points);
+        //random.nextInt(points.size());
         int i = 0;
-        // distribute each random point to a cluster
         for (LocationCoordinates point : points) {
             clusters.get(i).getLocationCoordinatesSet().add(point);
             i++;
@@ -119,16 +95,25 @@ public class ClusterService {
         return clusters;
     }
 
-    /**
-     * Distributes each point to the most appropriate {@link Cluster}, in this case, the geographic closest according to
-     * the Haversine distance
-     *
-     * @param points
-     * @param clusters
-     * @return
-     */
+    protected static List<Cluster> buildRandomInitialClusters(List<LocationCoordinates> points, int k) {
+        Collections.shuffle( points);
+        List<Cluster> clusters = new ArrayList<>();
+        for(int i = 0 ; i<k; i++) {
+            clusters.add(new Cluster( points.get(i).getLongitude(), points.get(i).getLatitude()));
+        }
+        Collections.shuffle(points);
+        int i = 0;
+        for (LocationCoordinates point : points) {
+            clusters.get(i).getLocationCoordinatesSet().add(point);
+            i++;
+            if (i == k) {
+                i = 0;
+            }
+        }
+        return clusters;
+    }
+
     private static List<Cluster> assignPointsToClusters(List<LocationCoordinates> points, List<Cluster> clusters) {
-        // for each point, find the cluster with the closest center
         clusters.forEach(cluster -> cluster.clearPoints());
 
         for (LocationCoordinates point: points) {
@@ -144,13 +129,7 @@ public class ClusterService {
         return clusters;
     }
 
-    /**
-     * Re-adjusts the center of each {@link Cluster} based on the current {@link LocationCoordinates}s assigned to it
-     *
-     * @param clusters
-     */
     private static List<Cluster> adjustClusterCenters(List<Cluster> clusters) {
-        // calculate the mean of all lats and longs
         for (Cluster cluster : clusters) {
             if (cluster.getLocationCoordinatesSet().size() > 0) {
                 cluster.setLatitude( cluster.getLocationCoordinatesSet().stream().map(e -> e.getLatitude()).collect(Collectors.summingDouble(Double::doubleValue)) / cluster.getLocationCoordinatesSet().size());
@@ -160,15 +139,6 @@ public class ClusterService {
         return clusters;
     }
 
-    /**
-     * Determines if the {@link Cluster}s have converged. This is done by comparing the contents of the current cluster
-     * iteration and the previous to see if any {@link LocationCoordinates}s have moved Clusters. If no movement has occured,
-     * we assume the clusters are stable
-     *
-     * @param previous
-     * @param current
-     * @return
-     */
     private static boolean hasConverged(List<Cluster> previous, List<Cluster> current) {
         if (previous.size() != current.size()) {
             throw new IllegalArgumentException("Clusters must be the same size");

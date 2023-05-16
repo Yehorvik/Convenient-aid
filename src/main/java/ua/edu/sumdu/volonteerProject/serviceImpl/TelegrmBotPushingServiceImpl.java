@@ -1,6 +1,7 @@
 package ua.edu.sumdu.volonteerProject.serviceImpl;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ua.edu.sumdu.volonteerProject.bot.TelegramBot;
 import ua.edu.sumdu.volonteerProject.errors.TelegramSendMessageError;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 
 @AllArgsConstructor
 @Service
+@Slf4j
 public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
     private final ChatLocationRepository chatLocationRepository;
     private final CitiesRepo citiesRepo;
@@ -33,21 +35,13 @@ public class TelegrmBotPushingServiceImpl implements TelegramBotPushingService {
 
     private TelegramBot telegramBot;
 
-//    public void pushMessagesToUsers(City city){
-//        citiesRepo.findById(city.getName()).orElseThrow(() -> new NullPointerException("city doesnt exist"));
-//        List<ChatLocation> chatLocations = chatLocationRepository.findByCityName(city);
-//        for(ChatLocation chatLocation: chatLocations){
-//            chatLocation
-//        }
-//    }
-
     @Transactional
     @Override
     public void pushMessagesToUsers(City city, List<LocationCoordinates> locationCoordinates) throws TelegramSendMessageError {
         List<UserVote> chatLocations =  userVotesRepository.getUserVotesByActiveAndChatLocation_CityName(true,city);
         Map<Long, LocationCoordinates> chatsAndLocations = new HashMap<>();
-        System.out.println(chatLocations);
-        System.out.println(locationCoordinates);
+        log.debug("locations sent to chats:" + chatLocations.toString());
+        log.debug("sent locations: " + locationCoordinates.toString());
         chatLocations.stream().parallel().forEach(e -> {
 
             chatsAndLocations.put(e.getChatLocation().getChatId(), locationCoordinates.stream().min((a, b) -> {

@@ -21,16 +21,6 @@ public class UserVotesServiceKMeansImpl implements UserVotesService {
     private final CitiesRepo citiesRepo;
     private final UserVotesRepository userVotesRepository;
 
-
-    private double computeDistance(UserVote currentUser, List<UserVote> allUsers){
-        double retValue = 0;
-        for (int i = 0; i < allUsers.size(); i++) {
-            LocationCoordinates innerLC = allUsers.get(i).getChatLocation().getLocationCoordinates();
-            LocationCoordinates outerLC = currentUser.getChatLocation().getLocationCoordinates();
-            double distanceInKm = CoordinateUtils.calculateDistance(innerLC, outerLC);
-        }
-        return retValue;
-    }
     @Override
     public List<LocationCoordinates> getCoordinates(City city) {
         if(city == null){
@@ -56,9 +46,6 @@ public class UserVotesServiceKMeansImpl implements UserVotesService {
         }
         ua.edu.sumdu.volonteerProject.model.City authorizedCity = citiesRepo.findById(city.getName()).orElseThrow(() -> new IllegalAccessException("city is not found"));
         List<UserVote> chatLocations = userVotesRepository.getUserVotesByActiveAndChatLocation_CityName(true, authorizedCity);
-
-        System.out.println("I AM HERE!!!");
-        //KmeansUtil kmeansUtil = new KmeansUtil.Builder(amountOfLocations,chatLocations.stream().map(e->e.getChatLocation().getLocationCoordinates()).toList()).iterations(3).useEpsilon(true).build();
         return  ClusterService.cluster(chatLocations.stream().map(e->e.getChatLocation().getLocationCoordinates()).collect(Collectors.toList()), amountOfLocations).stream().map(e->(LocationCoordinates)e).collect(Collectors.toList());
     }
 }

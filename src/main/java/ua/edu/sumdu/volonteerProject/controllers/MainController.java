@@ -80,7 +80,7 @@ public class MainController {
         long diff = pollAndSecurityCheckerService.getLastSendMessageExpirationDifferance(city);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE
-            //return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
+            return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
         }
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
         logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
@@ -107,7 +107,7 @@ public class MainController {
         long diff = pollAndSecurityCheckerService.getLastPollingExpirationDifferance(cityObj);
         if(diff<0){
             //TODO UNCOMMENT IN RELEASE
-            //return mapValidationErrorService.getErrorAsMap("pollingTimeout", String.valueOf(-diff));
+            return mapValidationErrorService.getErrorAsMap("pollingTimeout", String.valueOf(-diff));
         }
         telegramBotPushingService.createPoll(cityObj);
         return ResponseEntity.ok("your poll was successfully send");
