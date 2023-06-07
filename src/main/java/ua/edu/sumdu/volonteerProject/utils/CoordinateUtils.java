@@ -21,13 +21,12 @@ public class CoordinateUtils {
         double eLon = toRadians(a.getLongitude());
         double mLat = toRadians(b.getLatitude());
         double mLon = toRadians(b.getLongitude());
-        double result = sqrt
+        return sqrt
                 (
                         (mLat-eLat)*(mLat-eLat)
                                 +
                                 (eLon-mLon)*(eLon-mLon)*cos((eLat+mLat)/2)
                 )*6371;
-        return result;
     }
     public static double haversineDistance(double lat1, double lon1, double lat2, double lon2) {
         // taken from http://rosettacode.org/wiki/Haversine_formula#Java

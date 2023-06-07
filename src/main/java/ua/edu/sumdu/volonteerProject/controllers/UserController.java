@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
@@ -72,6 +73,10 @@ public class UserController {
         ));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = SecurityConstraints.TOKEN_PREFIX + tokenProvider.generateToken(authentication);
+        if(authentication.getAuthorities().stream().anyMatch(e-> e.getAuthority().toLowerCase().equals("admin")))
+        {
+            log.info("user with name " +  authentication.getName() + " and administrative role ADMIN has logged in");
+        }
         return ResponseEntity.ok(new JwtLoginSuccessResponse(true, jwt));
     }
 

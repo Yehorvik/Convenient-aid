@@ -1,6 +1,7 @@
 package ua.edu.sumdu.volonteerProject.security;
 
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -23,13 +24,14 @@ import java.util.UUID;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class CustomUserDetailsService implements UserDetailsManager {
     private final JwtUserDetailsRepository userDetailsRepository;
     private final AuthorityRepository authorityRepository;
-    private final String VOLUNTEER = "VOLUNTEER";
-    private final String USER = "USER";
+    private final static String VOLUNTEER = "VOLUNTEER";
+    private final static String USER = "USER";
 
-    private final int USERS_PER_PAGE = 20;
+    private final static int USERS_PER_PAGE = 20;
 
     private final PasswordEncoder bCryptPasswordEncoder;
 
@@ -48,6 +50,7 @@ public class CustomUserDetailsService implements UserDetailsManager {
             throw new UsernameNotFoundException("Cant find a user with a given email " + email);
         }
         jwtUserDetails.setBlocked(isBlocked);
+        log.info("User with email " + email + " has lost his role has been " + (isBlocked?"blocked":"unblocked"));
         userDetailsRepository.save(jwtUserDetails);
     }
 
@@ -84,6 +87,7 @@ public class CustomUserDetailsService implements UserDetailsManager {
         }
         jwtUserDetails.addAuthority(authority);
         userDetailsRepository.save(jwtUserDetails);
+        log.info("User with email " + email + " acquired the role " + authorityName);
     }
     public void deleteUserRoleByEmail(String email, String authorityName) throws AuthorityNotFoundException {
         JwtUserDetails jwtUserDetails = loadUserByEmail(email);
@@ -95,6 +99,7 @@ public class CustomUserDetailsService implements UserDetailsManager {
             throw new AuthorityNotFoundException("Cant find an authority");
         }
         jwtUserDetails.deleteAuthority(authority);
+        log.info("User with email " + email + " has lost his role " + authorityName);
         userDetailsRepository.save(jwtUserDetails);
     }
 

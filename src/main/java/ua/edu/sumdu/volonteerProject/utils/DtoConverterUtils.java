@@ -29,7 +29,6 @@ public class DtoConverterUtils {
         return new UserInfoDTO(jwtUserDetails.getUsername(),jwtUserDetails.getFirstName(), jwtUserDetails.getSecondName(), jwtUserDetails.getId(), jwtUserDetails.getAuthorityList().stream().toList(), jwtUserDetails.isBlocked(), cityName);
     }
     public JwtUserDetails convertUserDetails(UserDTO userDTO){
-        Authority a=  new Authority();
         City city = null;
         if(userDTO.getCityName()!=null) {
              city = citiesRepo.findById(userDTO.getCityName()).get();

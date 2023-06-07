@@ -24,7 +24,7 @@ public class CityController {
     private final CityService cityService;
 
     @PostMapping("/addCity")
-    public ResponseEntity<?> AddCity(@RequestBody CityDTO cityDTO, BindingResult bindingResult){
+    public ResponseEntity<?> addCity(@RequestBody CityDTO cityDTO, BindingResult bindingResult){
         cityValidator.validate(cityDTO, bindingResult);
         ResponseEntity errors = validationErrorService.mapErrors(bindingResult);
         if(errors!=null){
@@ -33,10 +33,5 @@ public class CityController {
         City city =  DtoConverterUtils.convertCity(cityDTO);
         cityService.saveCities(city);
         return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/updateCity")
-    public void UpdateCity(){
-
     }
 }

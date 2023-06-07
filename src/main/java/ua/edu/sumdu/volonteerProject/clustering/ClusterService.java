@@ -61,8 +61,8 @@ public class ClusterService {
         Collections.shuffle( points);
         List<Cluster> clusters = new ArrayList<>();
         clusters.add(new Cluster( points.get(0).getLongitude(), points.get(0).getLatitude()));
-        Random random = new Random();
-        List<Double> d2 = new ArrayList<>();
+        List<Double> d2;
+        Random d2Random = new Random();
         while (clusters.size() < k){
               d2 = points.stream().map(e-> clusters.stream().map(cluster -> {
                 double dst = CoordinateUtils.haversineDistance(e,cluster);
@@ -77,7 +77,7 @@ public class ClusterService {
             for (int i = 1; i<d2Probs.size(); i++) {
                 d2CumProbs.add(d2Probs.get(i)+d2CumProbs.get(d2CumProbs.size()-1));
             }
-            Random d2Random = new Random();
+
             double dval = d2Random.nextDouble();
             int index = IntStream.range(0,d2CumProbs.size()).filter(i -> dval<=d2CumProbs.get(i).doubleValue()).findFirst().getAsInt();
             clusters.add(new Cluster(points.get(index).getLongitude(), points.get(index).getLatitude()));

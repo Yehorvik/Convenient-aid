@@ -13,7 +13,7 @@ public class LogHistoryServiceImpl implements LogHistoryService {
 
 
     @Override
-    public void LogLocationSending(SendLocationsDetails sendLocationsDetails) {
+    public void logLocationSending(SendLocationsDetails sendLocationsDetails) {
         sendLocationDetailsRepo.save(sendLocationsDetails);
     }
 }

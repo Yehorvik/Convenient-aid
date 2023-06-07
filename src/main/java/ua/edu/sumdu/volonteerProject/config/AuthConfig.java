@@ -37,11 +37,6 @@ public class AuthConfig extends WebSecurityConfigurerAdapter {
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAuthenticationFilter authenticationFilter;
 
-//    @Bean
-//    public JwtAuthenticationFilter authenticationFilter(){
-//        return new JwtAuthenticationFilter( jwtTokenProvider , (CustomUserDetailsService) userDetailsManager);
-//    }
-
     @Override
     protected void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsManager).passwordEncoder(passwordEncoder);

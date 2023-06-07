@@ -28,10 +28,7 @@ import javax.ws.rs.core.Response;
 import java.lang.reflect.InvocationHandler;
 import java.net.http.HttpClient;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.*;
 
 @Component
@@ -49,18 +46,17 @@ public class TelegramBot {
     void init(){
         executorService = Executors.newFixedThreadPool(40);
         PoolingHttpClientConnectionManager poolingHttpClientConnectionManager = new PoolingHttpClientConnectionManager();
-        CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(poolingHttpClientConnectionManager).setConnectionTimeToLive(10000, TimeUnit.MILLISECONDS).build();
+        CloseableHttpClient httpClient = HttpClients.custom().setConnectionManager(poolingHttpClientConnectionManager).setConnectionTimeToLive(1, TimeUnit.NANOSECONDS).build();
         poolingHttpClientConnectionManager.setMaxTotal(500);
         poolingHttpClientConnectionManager.setDefaultMaxPerRoute(100);
 
         ApacheHttpClient4Engine engine = new ApacheHttpClient4Engine(httpClient);
-        client = ((ResteasyClientBuilder) ClientBuilder.newBuilder()).asyncExecutor(executorService).httpEngine(engine).build();//.connectTimeout(3, TimeUnit.SECONDS);
+        client = ((ResteasyClientBuilder) ClientBuilder.newBuilder()).asyncExecutor(executorService).httpEngine(engine).property("http.connection.timeout", 1).property("http.receive.timeout", 1).build();//.connectTimeout(3, TimeUnit.SECONDS);
         webTarget = client.target("https://api.telegram.org/bot{token}")
                 .resolveTemplate("token", this.token);
-        System.out.println(token);
     }
 
-    public Map<Long, Boolean> sendMessagesWithInlineBrd(List<Long> chat_ids , String message, String replyText) throws TelegramSendMessageError {
+    public Set<Long> sendMessagesWithInlineBrd(List<Long> chat_ids , String message, String replyText) throws TelegramSendMessageError {
         try {
             List<CallbackTelegramButtonEntity> buttonEntityList = new ArrayList<>();
             List<List<CallbackTelegramButtonEntity>> keyboardList = new ArrayList<>();
@@ -68,22 +64,16 @@ public class TelegramBot {
             keyboardList.add(buttonEntityList);
             CountDownLatch countDownLatch = new CountDownLatch(chat_ids.size());
             SemaphoreRateLimiter semaphoreRateLimiter = SemaphoreRateLimiter.create(30, TimeUnit.SECONDS);
-            Map<Long, Boolean> failed =new HashMap<>();
+            Set<Long> failed =new HashSet<>();
             TelegramReplyMarkup telegramReplyMarkup = new TelegramReplyMarkup(keyboardList);
             for (long a : chat_ids) {
-                //System.out.println(a);
                 while (!semaphoreRateLimiter.tryAcquire()){
                     Thread.sleep(200);
                 }
                 MessageEntity messageEntity = new MessageEntity(message, a, telegramReplyMarkup);
-                //.queryParam("reply_markup", "{InlineKeyboardButton:{text:"+replyText+"}}")
                 ObjectMapper objectMapper =new JsonMapper();
                 String returnString = objectMapper.writeValueAsString(messageEntity);
-                //System.out.println(returnString);
-                Future t = webTarget.path("sendMessage")
-                        //.queryParam("chat_id", a)
-                        //.queryParam("text", message)
-                        //.queryParam("reply_markup", "{InlineKeyboardButton:{text:"+replyText+"}}")
+                webTarget.path("sendMessage")
                         .request(MediaType.APPLICATION_JSON_TYPE)
                         .async()
                         .post(Entity.entity(returnString,MediaType.APPLICATION_JSON_TYPE),new InvocationCallback<Response>() {
@@ -91,22 +81,20 @@ public class TelegramBot {
                             public void completed(Response response) {
                                 countDownLatch.countDown();
                                 if(response.getStatus() >=400){
-                                    failed.put(a, false);
-                                    log.info(String.valueOf(response.getStatus() + " count down latch " + countDownLatch.getCount() + " "));
+                                    failed.add(a);
+                                    log.debug(String.valueOf(response.getStatus() + " count down latch " + countDownLatch.getCount() + " "));
                                     response.close();
                                     throw new RuntimeException();
                                 }
                                 response.close();
-                                //                       semaphore.release();
                             }
 
                             @Override
                             public void failed(Throwable throwable) {
                                 countDownLatch.countDown();
                                 throwable.printStackTrace();
-                                //                     semaphore.release();
                                 log.error("error occured but passed "+ Thread.currentThread());
-                                failed.put(a, false);
+                                failed.add(a);
                                 try {
                                     throw new Exception();
                                 } catch (Exception e) {
@@ -115,26 +103,21 @@ public class TelegramBot {
                             }
                         })
                 ;
-                try {
-                    t.get(2, TimeUnit.SECONDS);
-                }catch (InterruptedException | ExecutionException | TimeoutException e){
-                    countDownLatch.countDown();
-                    log.error("didnt send message because of timeout");
-                }
             }
             if(!countDownLatch.await(chat_ids.size()/30+4,TimeUnit.SECONDS)){
                 throw new TimeoutException();
             }
+            log.info("messages have been send: number of errors : " + failed.size() + " number of all requests: " + chat_ids.size());
             return failed;
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);
         }
     }
 
-    public Map<Long, Boolean> sendMessage(List<Long> chat_ids , String message) throws TelegramSendMessageError {
+    public Set<Long> sendMessage(List<Long> chat_ids , String message) throws TelegramSendMessageError {
         CountDownLatch countDownLatch = new CountDownLatch(chat_ids.size());
         SemaphoreRateLimiter semaphoreRateLimiter = SemaphoreRateLimiter.create(30, TimeUnit.SECONDS);
-        Map<Long, Boolean> failed =new HashMap<>();
+        Set<Long> failed =new HashSet<>();
         try {
             for (long a : chat_ids) {
                 while(!semaphoreRateLimiter.tryAcquire()){
@@ -149,22 +132,20 @@ public class TelegramBot {
                             public void completed(Response response) {
                                 countDownLatch.countDown();
                                 if(response.getStatus() >=400){
-                                    failed.put(a, false);
-                                    log.info(String.valueOf(response.getStatus()));
+                                    failed.add(a);
+                                    log.debug("failed request: " + String.valueOf(response.getStatus() + " count down latch " + countDownLatch.getCount() + " "));
                                     response.close();
                                     throw new RuntimeException();
                                 }
                                 response.close();
-                                //                       semaphore.release();
                             }
 
                             @Override
                             public void failed(Throwable throwable) {
                                 countDownLatch.countDown();
                                 throwable.printStackTrace();
-                                //                     semaphore.release();
                                 log.error("error occured but passed "+ Thread.currentThread());
-                                failed.put(a, false);
+                                failed.add(a);
                                 try {
                                     throw new Exception();
                                 } catch (Exception e) {
@@ -177,6 +158,7 @@ public class TelegramBot {
             if(!countDownLatch.await(chat_ids.size()/30+4,TimeUnit.SECONDS)){
                 throw new TimeoutException();
             }
+            log.info("messages have been send: number of errors : " + failed.size() + " number of all requests: " + chat_ids.size());
             return failed;
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);
@@ -185,13 +167,12 @@ public class TelegramBot {
     }
 
 
-    public Map<Long, Boolean> sendLocations(Map<Long, LocationCoordinates> usersAndLocations) throws TelegramSendMessageError {
+    public Set<Long> sendLocations(Map<Long, LocationCoordinates> usersAndLocations) throws TelegramSendMessageError {
         try {
-            Map<Long, Boolean> failed =new HashMap<>();
+            Set<Long> failed =new HashSet<>();
             CountDownLatch countDownLatch = new CountDownLatch(usersAndLocations.size());
             SemaphoreRateLimiter semaphoreRateLimiter = SemaphoreRateLimiter.create(30, TimeUnit.SECONDS);
             for (Map.Entry<Long, LocationCoordinates> entry : usersAndLocations.entrySet()) {
-               // semaphore.acquire();
                 while(!semaphoreRateLimiter.tryAcquire()){
                     Thread.sleep(200);
                 }
@@ -207,22 +188,20 @@ public class TelegramBot {
                                     public void completed(Response response) {
                                         countDownLatch.countDown();
                                         if(response.getStatus() >=400){
-                                            failed.put(entry.getKey(), false);
-                                            log.info(String.valueOf(response.getStatus()));
+                                            failed.add(entry.getKey());
+                                            log.debug("failed request: " + String.valueOf(response.getStatus() + " count down latch " + countDownLatch.getCount() + " "));
                                             response.close();
                                             throw new RuntimeException();
                                         }
                                         response.close();
-                                        //                       semaphore.release();
                                     }
 
                                     @Override
                                     public void failed(Throwable throwable) {
                                         countDownLatch.countDown();
                                         throwable.printStackTrace();
-                                        //                     semaphore.release();
                                         log.error("error occured but passed "+ Thread.currentThread());
-                                        failed.put(entry.getKey(), false);
+                                        failed.add(entry.getKey());
                                         try {
                                             throw new Exception();
                                         } catch (Exception e) {
@@ -236,7 +215,7 @@ public class TelegramBot {
 
             }
             countDownLatch.await();
-            log.info("somehow messages have been send");
+            log.info("messages have been send: number of errors : " + failed.size() + " number of all requests: " + usersAndLocations.size());
             return failed;
         }catch(Exception e){
             throw new TelegramSendMessageError("cant send the message", e);

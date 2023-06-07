@@ -3,7 +3,6 @@ package ua.edu.sumdu.volonteerProject.controllers;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -83,7 +82,7 @@ public class MainController {
             return mapValidationErrorService.getErrorAsMap("sendLocationTimeout", String.valueOf(-diff));
         }
         telegramBotPushingService.pushMessagesToUsers(city, selectedLocations.getCoordinatesList());
-        logHistoryService.LogLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
+        logHistoryService.logLocationSending(DtoConverterUtils.convertSelectedLocations(selectedLocations));
         log.info(selectedLocations.toString());
         log.info(city.toString());
         deliveryTimerService.updateNextTimeDelivery(city, selectedLocations.getTimeOfDelivering());
